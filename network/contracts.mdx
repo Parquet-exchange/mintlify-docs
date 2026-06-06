@@ -1,0 +1,120 @@
+---
+title: Contracts
+description: Parquet program IDs — six programs deployed on Solana mainnet (and devnet), same IDs on every cluster.
+audience: developer
+---
+
+## Deployment
+
+Parquet runs on Solana mainnet: 15 active markets fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH markets; the relayer-written `PriceFeed` PDA off-hours and for the relayed-24/7 markets), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
+
+The six programs are deployed under deploy wallet `PARQVsPSbsn1Pm7kdayZpicVu2pBRLYEnqijLP2QC3z`. The same program IDs are used on localnet, devnet, and mainnet (the addresses below).
+
+<Note>
+  Explorer links below open on Solana mainnet — the explorer's default cluster — so they show the live deployment. The program IDs are the same on every cluster, so the same addresses also resolve on devnet; switch the explorer's cluster selector to `devnet` if you need the devnet view.
+</Note>
+
+## Programs
+
+### pool_program
+
+Owns per-market vaults, manages the v4 payout queue and `side_bucket`, accrues fees, mints LP shares on deposits.
+
+```
+Acme8JzWrvVqGJz7nTKVsLYisN6MtP83nrs4fVAeXJsN
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/Acme8JzWrvVqGJz7nTKVsLYisN6MtP83nrs4fVAeXJsN)
+
+### perp_engine
+
+Position lifecycle (open/close/liquidate), order management (limit/stop), margin updates, funding-rate cranks. Calls `pool_program` via `engine_auth` CPIs.
+
+```
+6QrsMTMEu9rsLpyxQgRdvQsWoPgHGY9npNNiwTtXsbdc
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/6QrsMTMEu9rsLpyxQgRdvQsWoPgHGY9npNNiwTtXsbdc)
+
+### oracle_adapter
+
+Lightweight CPI surface for read-only price reads. Other programs CPI here rather than parsing `PriceFeed` bytes directly. Under the pyth-hybrid oracle, the adapter reads Pyth's `PriceUpdateV2` as primary during RTH and falls back to the relayer-written `PriceFeed` PDA (carrying the off-hours reference) when the primary feed ages out — so reads succeed 24/7.
+
+```
+6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd)
+
+Builds are gated in CI to ensure the production price-validation path is compiled in.
+
+### price_feed
+
+Per-market `PriceFeed` PDA storage, written by the off-chain price-relay service. Decode the PriceFeed account via the SDK (PriceFeedClient / utils/priceMath); the binary layout is internal and not intended for hand parsing.
+
+```
+Dgorf5LPiMttdTxWcrsiA2j94kWKw55gJLRJm8P4E1Hn
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/Dgorf5LPiMttdTxWcrsiA2j94kWKw55gJLRJm8P4E1Hn)
+
+### fee_distributor
+
+Two-stage fee routing: sweep non-LP fees from pool, distribute via configurable splits (`staker_split_bps`, `treasury_split_bps`; referral share is the remainder). Includes `disburse_referral` for affiliate payouts.
+
+```
+CHTpVtZQboxjM6N9xk1RR29jZyWqFNV77cmQNJ18RNNL
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/CHTpVtZQboxjM6N9xk1RR29jZyWqFNV77cmQNJ18RNNL)
+
+### staking
+
+Multi-pool staking. Two pool types via `reward_source` enum (`BalanceBased` / `EmissionSchedule`). Supports atomic `claim_and_restake` across pool types.
+
+```
+35HddZHf84u6DeyLoZL3Z3a8pZ59594xu1aizj7VrAGR
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/35HddZHf84u6DeyLoZL3Z3a8pZ59594xu1aizj7VrAGR)
+
+### mock_usdc (devnet only)
+
+Devnet collateral mint. The deploy wallet is the mint authority. **Mainnet uses the canonical USDC SPL mint `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`** — do not assume this devnet mock address on mainnet.
+
+```
+DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA?cluster=devnet)
+
+## Protocol token (PARQ)
+
+The Parquet protocol token — a **Token-2022** mint (token program `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`), 6 decimals, ~1B fixed supply, mint + freeze authority revoked, metadata-only (no transfer fee, transfer hook, or permanent delegate). It is the stake asset for the fee-fed staking pool. For supply, allocation, and how the token accrues value, see [$PARQ token](/staking/tokenomics).
+
+```
+VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq)
+
+## Markets
+
+`pool_program` holds per-symbol `MarketState` PDAs (initialized on both devnet and mainnet). **15 are active**, split by feed class under feed-v2 (2026-05-31):
+
+- **Free-RTH (11)** — AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, SPY, QQQ — read Pyth's `PriceUpdateV2` as primary during RTH and the relayer-written `PriceFeed` PDA off-hours.
+- **Relayed-24/7 (4)** — MU, SNDK, INTC, AMD — read the `PriceFeed` PDA in every session.
+
+The remaining symbols — MSFT, META, PLTR, GLD (dropped 2026-05-31), SMCI (dropped 2026-05-16), and USO (dropped 2026-05-24) — keep their `MarketState` PDAs initialized but have no live feed, so their oracles stay stale and opens revert.
+
+All markets share a single wallet-notional-tiered leverage table applied in **every session** — **up to 200× on the smallest tier (≤$5K)**, scaling down by wallet-notional tier (≤$50K / ≤$250K / ≤$1M / >$1M, to 10× for >$1M). The 200× openable max follows from the **50 bps initial margin** (a fresh max-tier open has ~0 economic cushion after the open fee). Maintenance margin is **40 bps** venue-wide, liquidation fee = 50 bps, funding cap = 10 bps/hour. OI cap = $5M per market during RTH and $500K off-hours (the one risk parameter that still tightens off-hours, alongside off-exchange reference pricing). An **ADL tail-backstop** (Tier-B queue-IOU socialization) is armed off-hours on all markets as a last-resort bound on the payout-queue tail — see [Payout queue](/trade/payout-queue) and [Risks](/reference/risks). Bad-data rejection happens in the off-chain aggregator. See [Markets](/markets) for the symbol list.
+
+## Fee distribution split
+
+Effective on mainnet (2026-06-03): **LP 60% / stakers 25% / treasury 10% / referral 5%** of total trading fees. The LP cut is taken first; the remainder is split among stakers, the treasury, and the referral pool in those proportions.
+
+## See also
+
+- [Network → API](/network/api) — public indexer endpoints and rate limits.
+- [Developer → SDK](/developer/sdk) — TypeScript client that wraps these program IDs.
+- [Markets](/markets) — symbol list and per-market parameters.

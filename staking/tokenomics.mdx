@@ -1,0 +1,96 @@
+---
+title: $PARQ token
+description: The $PARQ token — a fixed-supply Token-2022 mint, its supply and allocation, how it accrues value through the trading-fee stream, and the design behind the launch.
+audience: trader
+---
+
+$PARQ is the token of Parquet Exchange. Its only claim on protocol revenue is staking: stake $PARQ to earn a share of trading fees, paid in USDC. This page covers the token's identity, supply and allocation, how it accrues value, and the design choices behind the launch. For the staking mechanics themselves — lockup tiers, multipliers, and how to stake — see [Staking & Rewards](/staking/overview).
+
+## Token at a glance
+
+| Field | Value |
+|-------|-------|
+| Ticker | **PARQ** |
+| Token standard | **Token-2022** (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`) |
+| Decimals | **6** |
+| Total supply | **~1,000,000,000** (fixed at mint) |
+| Mint authority | **Revoked** |
+| Freeze authority | **Revoked** |
+| Extensions | Metadata only (MetadataPointer + TokenMetadata) — no transfer fee, transfer hook, or permanent delegate |
+| Launch venue | [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) |
+| Quote asset | **USDC** |
+
+```
+VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
+```
+
+[View on Solana Explorer](https://explorer.solana.com/address/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) · [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq)
+
+Because both the mint and freeze authorities are revoked and the mint carries no transfer-fee, transfer-hook, or permanent-delegate extension, the supply is fixed and the token cannot be minted, frozen, taxed, or clawed back after launch.
+
+## Supply & allocation
+
+The full supply was set at mint and cannot grow. It is distributed across five buckets:
+
+| Allocation | Share |
+|------------|-------|
+| Public sale (pump.fun) | **85%** |
+| Staking & LP rewards | **6%** |
+| Treasury & development | **4%** |
+| Core contributors (vested) | **3%** |
+| Growth & incentives | **2%** |
+
+- **Public sale (85%)** — sold on the open [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) bonding curve, with no presale, no discounted insider tranche, and no allocation the public cannot reach.
+- **Staking & LP rewards (6%)** and **growth & incentives (2%)** — bootstrap capital. See [Why the bootstrap buckets exist](#why-the-bootstrap-buckets-exist) below.
+- **Treasury & development (4%)** — covers infrastructure and ongoing development.
+- **Core contributors (3%)** — vest to the team over time.
+
+## How $PARQ accrues value
+
+Parquet charges a fee on notional at every fill — **0.1%** base, or **0.05%** when a trade reduces the open-interest imbalance between longs and shorts. That fee splits four ways:
+
+| Recipient | Share of every fee |
+|-----------|--------------------|
+| Per-market liquidity pool | **60%** |
+| $PARQ stakers | **25%** |
+| Treasury | **10%** |
+| Referral reserve | **5%** |
+
+The staker share pays in **USDC**, pro-rata across staked balance and weighted by your lockup tier. Because it is taken per trade, the distribution tracks volume rather than an emission schedule — it is protocol revenue, not token inflation. (Fee numbers are canonical at [Fees & Costs](/trading/fees); the on-chain split encoding is documented at [Contracts](/network/contracts#fee-distribution-split).)
+
+Staking is the token's only claim on this revenue. There is no buyback, no rebate, and no holder airdrop — the staking contract is the sole route from $PARQ to the fee stream. So demand for the fee share is demand to acquire and lock the token against a supply that cannot grow.
+
+Protocol-token staking is **live on mainnet** — see [Staking & Rewards](/staking/overview) to stake and for the lockup-tier multipliers.
+
+<Note>
+  Every output described here — protocol fees, the LP fee share, and the staker distribution — is a direct function of trading volume and **may be zero**. Nothing on this page is a projection or a guarantee of future returns; it describes the protocol's mechanics, not its outcomes.
+</Note>
+
+## Why a fixed allocation, not emissions
+
+Funding incentives from a fixed **2% / 6%** allocation instead of open-ended emissions is the load-bearing decision. Emission-funded incentives subsidize liquidity by diluting holders indefinitely; a fixed allocation caps the cost and spends it down. After it is spent, growth has to come from fee revenue — the same source stakers draw from. Dilution is therefore bounded, the yield is real protocol revenue rather than inflation, and value accrual has no leakage.
+
+## Why the bootstrap buckets exist
+
+Parquet has no order book. Trades execute against a per-market USDC pool at the oracle price, so the pool is the counterparty, and pool depth — not spread — determines how much open interest the venue can carry. A pool's steady-state yield is its 60% fee cut, which only matters once volume exists. That creates a fixed point at launch: LPs will not deposit without fee flow, and fee flow needs the depth that deposits provide.
+
+The bootstrap buckets pay past that fixed point:
+
+- **Staking & LP rewards (6%)** seed pool depth.
+- **Growth & incentives (2%)** source the first volume, through referral and trading rewards.
+
+Once the 60% fee cut sustains the pool unassisted, these buckets are spent down and growth runs on fee revenue alone.
+
+## Why pump.fun
+
+$PARQ launched on [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) because the distribution above is only credible if the launch mechanism enforces it. A bonding curve sells to everyone on the same programmatic pricing — no presale, no discounted insider tranche, no allocation the public cannot reach. It also keeps the two layers clean: $PARQ is the token, while the protocol's liquidity and fees run through per-market USDC pools. Staking $PARQ is the sole claim on those fees, and the bonding curve is what distributed that claim fairly.
+
+## Why paired against USDC
+
+$PARQ is paired against USDC, not SOL. A SOL pair would price the token as PARQ/SOL × SOL/USD — its dollar value would track SOL regardless of how the protocol performs. A USDC pair quotes it directly in dollars, the same unit it earns and pays out: the price reflects demand for $PARQ, not exposure to SOL.
+
+## Risk & disclaimer
+
+$PARQ is a volatile digital asset and may lose all of its value. The protocol outputs described on this page — protocol fees, the LP fee share, the staker distribution, and the resulting token demand — are a direct function of trading volume and may be zero. Nothing here is a projection, guarantee, or representation of future returns.
+
+$PARQ is a protocol-utility token, not a security: holding it conveys no equity, no ownership of Parquet or its pools, and no claim on the entity. Parquet is a leveraged trading venue; positions are subject to liquidation and total loss. Conduct your own research, verify every claim on-chain, and assume the risk of loss. Nothing here is financial advice. See [Risk disclosure](/reference/risks) for the full risk discussion.

@@ -1,0 +1,57 @@
+---
+title: Trading overview
+description: How to trade perpetuals on Parquet — wallets, positions, leverage, trading keys, and liquidations.
+---
+
+<Note>
+  Trading uses real USDC on a leveraged venue. Read the [risk disclosure](/reference/risks) before you open a position.
+</Note>
+
+Parquet is a decentralized exchange. You trade without creating an account. Connect a Solana wallet, deposit USDC collateral, and open leveraged long or short positions on listed US stock and ETF markets. Prices are sourced from live external market-data feeds and kept continuously up to date on-chain.
+
+Parquet trades 24/7. During regular US market hours (Mon–Fri 9:30am–4:00pm ET, adjusted for US holidays) Parquet uses live exchange data. Outside those hours the venue stays open with the **same leverage tiers** but tighter limits — a lower per-market position cap and an armed ADL tail-backstop — and pricing from an off-exchange reference feed. See [Markets](/markets) for details.
+
+## Connecting a wallet
+
+Parquet works with Phantom and Solflare through the standard Solana wallet adapter. To start trading, you need:
+
+- **SOL** for Solana transaction fees.
+- **USDC** as collateral for positions and liquidity deposits.
+
+Connect your wallet using the button in the top right of the interface at [parquet.exchange](https://parquet.exchange).
+
+## How positions work
+
+All positions are USDC-margined with linear PnL. You deposit USDC collateral and select a leverage multiplier to determine your total position size.
+
+- **Long:** You profit when the market price increases above your entry price.
+- **Short:** You profit when the market price decreases below your entry price.
+- **Leverage** amplifies both gains and losses. A 10× long on AAPL with $100 collateral creates a $1,000 position — and a roughly 10% move against you would wipe out your $100 collateral.
+
+Every position is opened against the market's USDC liquidity pool at the current oracle price. The pool is the counterparty to all trades.
+
+| Parameter | Description |
+|-----------|-------------|
+| Collateral | USDC amount deposited as margin |
+| Size | Total position size in USD (collateral × leverage) |
+| Leverage | Multiplier on collateral — up to 200× on the smallest positions, scaling down to 10× for the largest, in **every session** (set by the 50 bps initial margin) |
+| Entry price | Oracle price at the time of execution |
+| Liquidation price | Price at which health drops below the maintenance margin requirement (MMR = 40 bps venue-wide) |
+
+Positions require a minimum of $10 USDC collateral. Each market has a $5M open interest cap during regular market hours and $500K off-hours.
+
+## Trading key delegation
+
+Trading-key delegation — authorizing a locally stored keypair to sign trades for you so you skip the wallet confirmation popup on every action — is **planned but not yet available**. The on-chain building blocks exist, but the end-to-end flow isn't wired into the app yet, so for now every trade is signed directly by your connected wallet. See [what's not in the launch v1 release](/reference/faq#whats-not-in-the-launch-v1-release).
+
+When it ships, a trading key will be scoped to trading only — it will be able to open and close positions and manage orders, but never withdraw or transfer funds, so even a compromised key could not move assets out of your wallet.
+
+## Liquidations
+
+A position is liquidated when its effective equity falls below the maintenance margin requirement (40 bps venue-wide). Effective equity accounts for unrealized PnL, accrued funding charges, and accrued borrowing fees — not just the deposited collateral.
+
+Your position's health depends on your effective equity relative to its size. As your equity — after PnL, funding, and borrowing fees — shrinks toward the maintenance requirement, your liquidation risk rises.
+
+When your effective equity drops below the maintenance margin requirement, the position becomes eligible for liquidation. Liquidations are executed automatically by the protocol when these conditions are met. A liquidation fee of 50 bps is paid to the liquidator from the remaining collateral.
+
+For details on the fees that affect effective equity, see [Fees & Costs](/trading/fees).

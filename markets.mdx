@@ -1,0 +1,72 @@
+---
+title: Markets
+description: All 15 active Parquet markets — single-name US equities and broad-market ETFs, trading 24/7.
+---
+
+Parquet trades live on Solana mainnet — all 15 markets below are tradeable now.
+
+Parquet lists 15 active markets — 13 single-name US equities plus 2 broad-market ETFs. Each market gives synthetic long or short exposure to a real-world US-listed stock or ETF price, settled in USDC against an isolated per-market liquidity pool. **Markets trade 24/7.** During regular US trading hours (9:30 AM–4:00 PM ET, Mon–Fri) prices track the live US equity market; outside those hours, prices come from an off-exchange reference feed. See [Trading hours](#trading-hours) and [Risks](/reference/risks).
+
+## Single-name equities
+
+Large-cap and high-volume US equities.
+
+| Symbol | Name |
+|--------|------|
+| AAPL  | Apple |
+| NVDA  | NVIDIA |
+| GOOGL | Alphabet (Class A) |
+| AMZN  | Amazon |
+| TSLA  | Tesla |
+| COIN  | Coinbase |
+| MSTR  | MicroStrategy |
+| HOOD  | Robinhood |
+| CRCL  | Circle |
+| MU    | Micron Technology |
+| SNDK  | SanDisk |
+| INTC  | Intel |
+| AMD   | Advanced Micro Devices |
+
+## ETFs
+
+Broad-market index ETFs.
+
+| Symbol | Name | Exposure |
+|--------|------|----------|
+| SPY | SPDR S&P 500 ETF  | Broad US equity market (S&P 500) |
+| QQQ | Invesco QQQ Trust | Nasdaq-100 index |
+
+## Inactive markets
+
+A few symbols are listed for historical reasons but aren't currently enabled for trading — they have no live price feed, so you can't open positions on them. That's 15 active markets plus 6 inactive ones.
+
+| Symbol | Name |
+|--------|------|
+| MSFT | Microsoft |
+| META | Meta Platforms |
+| PLTR | Palantir |
+| GLD  | SPDR Gold Shares |
+| SMCI | Super Micro Computer |
+| USO  | United States Oil Fund |
+
+The active lineup changes over time as feed coverage changes; the list above reflects the current venue.
+
+## Trading hours
+
+Parquet trades continuously, 24/7. Two pricing regimes apply:
+
+- **Regular trading hours (RTH)** — 9:30 AM–4:00 PM ET, Mon–Fri, excluding US market holidays. Prices track the live US equity market. Leverage tops out at **200×** on the smallest position tier (set by the 50 bps initial margin) and the per-market open-interest cap is $5M.
+- **Off-hours** — everything else, including overnight and weekends. Prices come from an off-exchange reference feed rather than the underlying US equity venues, so the mark can drift from where the stock would actually trade at the next US open — especially across the 4:00 PM ET close. The **same leverage tiers** apply as in regular hours, but two things tighten: the per-market open-interest cap drops to $500K, and an **ADL tail-backstop** is armed (a last-resort, capped socialization of the payout-queue tail — see [Payout queue](/trade/payout-queue) and [Risks](/reference/risks)). Positions held across the boundary are marked continuously against the reference feed, so you can be liquidated overnight or over a weekend — see [Risks](/reference/risks) and [Liquidations](/trade/liquidations).
+
+At each session boundary (9:30 AM and 4:00 PM ET) Parquet applies a short (10-minute) weighted blend between the two regimes to smooth the transition. US holidays and early closes are detected automatically and treated as off-hours.
+
+The app shows a banner indicating whether the market is in regular hours, transitioning, or off-hours, along with when the next session change happens.
+
+## How pricing works
+
+Prices on Parquet come from external market-data feeds, adjusted by session:
+
+1. **Sourcing** — During regular hours, prices track the live US equity market. Off-hours, they come from an off-exchange reference feed.
+2. **Validation** — Prices are checked off-chain before they reach the chain; bad or stale data is filtered out. Large but legitimate moves — such as the Monday-morning open — are allowed through.
+3. **On-chain updates** — Validated prices are posted on-chain about once per second, more often for fast-moving names.
+4. **Oracle check** — Each on-chain price is validated for staleness and confidence before any trade can execute against it.

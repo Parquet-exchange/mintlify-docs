@@ -1,0 +1,77 @@
+---
+title: Managing margin
+description: Add or remove margin from an open Parquet position — when removals are allowed, the $10 minimum, and tighter off-hours rules.
+audience: trader
+---
+
+## Why manage margin
+
+Once a position is open, you can adjust the collateral backing it without
+closing and reopening. There are two reasons you might want to:
+
+- **Add margin** to lower liquidation risk — more collateral pushes your
+  liquidation price further away from the mark.
+- **Remove margin** to free wallet collateral when the position is comfortably
+  in profit and you want to redeploy capital.
+
+Both actions happen in one transaction you sign with your wallet — choose add
+or remove, then enter the USDC amount.
+
+<Warning>
+**Margin removes apply a liquidation-style safety check, 24/7.** Adds are always allowed. Removes require your post-remove position to stay above the maintenance-margin requirement and within the leverage tiers (up to 200× on the smallest positions, scaling down by position size) — the same tiers now apply in every session. Off-hours pricing comes from an off-exchange reference feed that keeps updating around the clock (not a stale feed), and off-hours carries a tighter open-interest cap plus an armed ADL tail-backstop — so a removal that passes mid-session can still be a riskier position to hold overnight.
+</Warning>
+
+## Adds are always allowed
+
+Adding margin is straightforward. The only constraint is your wallet USDC
+balance — adding margin moves USDC from your wallet into the position's
+collateral. New collateral lifts your
+[effective equity](/reference/glossary#effective-equity) directly, which moves
+the liquidation price away from current mark.
+
+There is no upper bound and no health check needed on the add path: more
+collateral can only make a position safer.
+
+## Removes are gated by a PnL-aware health check
+
+Removal applies the same safety check as a liquidation. After the proposed
+removal, your position must still sit above the maintenance margin requirement
+(MMR = 40 bps venue-wide). The math — including how unrealized PnL
+feeds in — is documented in [Liquidations](/trade/liquidations).
+
+If the requested removal would drop your position to or below the maintenance
+margin requirement, the request is rejected before any funds move. You cannot
+accidentally remove yourself into a liquidatable state.
+
+<Tip>
+  If you want to take profit but keep the position open, partial close is
+  usually cleaner than removing margin — it locks in PnL and reduces size
+  proportionally, rather than just thinning the buffer.
+</Tip>
+
+## Min collateral floor
+
+Even when the health check passes, you can't remove collateral below the $10
+per-position minimum — the request is rejected before any funds move.
+
+| Rule | Value | What happens if you breach it |
+|------|-------|-------------------------------|
+| Minimum collateral per position | $10 | Removal is rejected, no funds move |
+
+This floor keeps tiny, hard-to-manage positions off the venue. If you want to
+go below $10 of collateral, close the position instead.
+
+## When part of your collateral came from the payout queue
+
+Part of a position's collateral can come from the LP payout queue instead of
+your wallet, and Parquet tracks how much. When you remove margin, the
+wallet-funded portion comes out first; the queue-funded portion is only touched
+once the wallet portion is used up. This makes sure removing margin can never
+quietly drain collateral that was funded by the payout queue.
+
+<Note>
+  If your position has no queue-drawn collateral, this rule has no effect —
+  every removal comes from your wallet portion as expected. See
+  [Payout queue](/trade/payout-queue) for the full picture on how queue-drawn
+  collateral enters a position.
+</Note>

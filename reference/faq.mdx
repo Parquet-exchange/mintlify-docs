@@ -1,0 +1,85 @@
+---
+title: FAQ
+description: Common questions about Parquet — what it is, how to trade, fees, trading hours, mainnet status, where to file bugs.
+audience: trader
+---
+
+Quick answers to the questions traders ask most. Each answer links out to the page that covers it in full.
+
+### What is Parquet?
+
+Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure to US equities and ETFs. The protocol lists 15 active markets — 13 large-cap stocks (AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, MU, SNDK, INTC, AMD) and 2 broad-market ETFs (SPY, QQQ). A few more symbols (MSFT, META, PLTR, GLD, SMCI, USO) are recognized on-chain but inactive — see [`/markets`](/markets) for the full list.
+
+### When can I trade?
+
+**24/7.** During regular trading hours (Mon–Fri 09:30–16:00 ET) prices track the live US equity market. Off-hours, pricing comes from an off-exchange reference feed. A 10-minute weighted blend smooths each session boundary. US holidays and early-close days are detected automatically and degrade the RTH regime to off-hours. The app shows the current session — regular trading hours, the transition blend, or off-hours. See [`/trading/overview`](/trading/overview); developers can read the session programmatically via the [public API](/network/api#get-market-hours).
+
+### What happens to my position over the weekend?
+
+It stays open and pricing keeps flowing — Parquet is 24/7 since the 2026-05-20 unlock. Funding and borrowing fees accrue continuously and the keeper continues stamping funding through the weekend. You can close, add margin, or remove margin at any time; the off-hours risk parameters ($500K vs $5M OI cap per market, plus an armed ADL tail-backstop — leverage tiers are the same in every session) still apply. See [`/reference/risks`](/reference/risks) for off-hours-specific risk considerations.
+
+### Is this on mainnet?
+
+Yes. Parquet trades on Solana mainnet — 15 active markets trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
+
+### What wallets are supported?
+
+Phantom and Solflare via the Solana wallet adapter. Anything that speaks the adapter should work, but those two are the supported path. See [`/getting-started/wallet-setup`](/getting-started/wallet-setup) to connect.
+
+### What's the maximum leverage?
+
+**Tiered up to 200×** for the smallest positions (≤ $5K wallet-market notional), falling to 10× for the largest (> $1M) — the **same table in every session**, set by the 50 bps initial margin. A fresh 200× position has only a 10 bps margin above maintenance (40 bps) that the 10 bps open fee fully consumes — so it opens essentially at its liquidation point, and even a small move against you can trigger liquidation. Use the highest tiers only with that in mind. See [`/getting-started/first-trade`](/getting-started/first-trade) for the trade flow and the full tier table.
+
+### What fees do I pay?
+
+Base open/close fee is **0.1%** of notional, reduced to **0.05%** when your trade reduces open-interest imbalance. Funding is capped at **10 bps/hour**. Liquidations pay a 50-bps reward to the keeper from your remaining collateral. See [`/trading/fees`](/trading/fees) for the full breakdown.
+
+### What's the open-interest cap?
+
+**$5M per market during RTH** and **$500K per market off-hours**. When a market hits the cap, no new positions can be opened until existing positions are closed. The lower off-hours cap reflects tighter risk discipline during low-liquidity windows. See [`/liquidity/overview`](/liquidity/overview).
+
+### Why didn't my winning close pay out immediately?
+
+When the pool is short on free liquidity, winning closes go into a FIFO payout queue and pay out as LPs absorb losses or new deposits arrive. Your position is closed and your USDC payout is reserved — the queue is just the order in which it lands in your balance. See [`/trade/payout-queue`](/trade/payout-queue).
+
+### What happens if I get liquidated?
+
+Once your health drops to or below the maintenance margin (0.4% venue-wide), anyone can trigger a liquidation. You receive net PnL minus fees; the liquidator earns a 50-bps bounty out of your remaining collateral, capped per call. See [`/trade/liquidations`](/trade/liquidations).
+
+### Can I add or remove margin on an open position?
+
+Yes — you can add or remove margin on an open position at any time, 24/7. Adds are always allowed; removes pass the same health check that a liquidation would — the post-remove position must stay above maintenance margin and within the leverage tiers (which are the same in every session). See [`/trade/margin-management`](/trade/margin-management).
+
+### How do LPs make money?
+
+**60% of every trading fee** flows to LP balance, paid out through the deposit/withdrawal share price. LPs also absorb realized PnL — they win when traders lose net, and lose when traders win net. (The public LP **farm** at `/farm` — where you deposit to become an LP — is **not yet live**; coming soon.) See [`/liquidity/overview`](/liquidity/overview) and [`/earn/lp-payout-queue`](/earn/lp-payout-queue) for how the LP payout queue works.
+
+### What is staking?
+
+Stake **PARQ** (an SPL Token-2022 mint) for a claimable USDC share of fee distributions — protocol-token staking is **live on mainnet**. Emission-schedule rewards and the separate LP **farm** (the LP cut of trading fees) are **not yet live**. See [`/staking/overview`](/staking/overview) for the basics and [`/developer/staking-emissions`](/developer/staking-emissions) for the emission-curve mechanics.
+
+### Is there a referral program?
+
+Yes — tier-based, configured by the operator. On today's Standard tier, referrers earn **~25%** of their referred traders' trading fees (claimable USDC, uncapped) and referred traders get **10% off fees** for life; deeplinks auto-apply on the first trade. Tiers can change, so treat those as the current rate. As an affiliate you claim accrued rewards per market. See [`/referrals`](/referrals) and [`/earn/referrals-lifecycle`](/earn/referrals-lifecycle) for the full lifecycle.
+
+### How do I get test funds on devnet?
+
+Devnet uses a mock USDC mint at `DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA`. Watch the Parquet [Telegram](https://t.me/parquetexchange) for the faucet workflow.
+
+### What's not in the launch v1 release?
+
+A few features are scoped out of the initial mainnet release and tracked for follow-up:
+
+- **Trading-key delegation** — letting a bot sign trades on your behalf is not yet wired end-to-end in the SDK. For now, bot operators should sign trades with the wallet directly.
+- **Hot-standby failover host** — Your funds and open positions live on-chain and are unaffected by an off-chain outage. Parquet's off-chain services (price-pushing and indexing) run with a manual recovery procedure today; if that host fails, recovery is currently a manual operator step. A hot-standby failover host is planned.
+- **Expanded on-call alerting** — Service uptime is monitored, and the on-call alerting tiers are still being expanded.
+
+### Is delegation supported for bots?
+
+Partially. The on-chain delegation building blocks exist, but order types (limit, stop, stop-loss, take-profit) and the SDK do not yet support delegate-signed trades end-to-end. For now, bot operators should sign with the wallet directly. See [Known limitations](#whats-not-in-the-launch-v1-release) above.
+
+### Where do I report bugs or suggest features?
+
+For non-security bugs and feature requests, open an issue on the Parquet GitHub or reach out via [Telegram](https://t.me/parquetexchange). Live handles are intentionally not embedded here in case they change.
+
+**Found a security vulnerability?** Do not open a public issue or post in the public channel — report it privately. See [Security](/reference/security) for the responsible-disclosure process.

@@ -1,0 +1,59 @@
+---
+title: Liquidations
+description: How and why positions get liquidated on Parquet — the maintenance-margin trigger, the 50 bps liquidator reward, and what happens off-hours.
+audience: trader
+---
+
+Liquidations exist because losing trades eventually run out of collateral. When your position moves against you far enough that the remaining equity can't cover the maintenance margin, the protocol needs to close you out before the loss spills onto liquidity providers. Anyone can trigger a liquidation — there is no privileged operator — so in practice automated bots (keepers) close eligible positions almost instantly.
+
+## When you get liquidated
+
+Your position is liquidatable when its health falls to or below the maintenance margin ratio (see [MMR](/reference/glossary#mmr)):
+
+```
+health ≤ MMR_BPS
+```
+
+Health is computed from your [effective equity](/reference/glossary#effective-equity), the market's max leverage, and your position size:
+
+```
+health         = effective_equity × max_leverage / size
+effective_equity = collateral + pnl − funding_charge − borrowing_fee
+```
+
+Three numbers to remember:
+
+| Constant | Value |
+|---|---|
+| `MMR_BPS` | **40 bps** (0.4% of position size, venue-wide) |
+| `MAX_LEVERAGE` | **Tiered** — up to 200× (≤ $5K notional) down to 10× (> $1M), same tiers in every session (set by the 50 bps initial margin) |
+| Liquidator reward | **50 bps** of remaining collateral (capped per call) |
+
+Liquidation math rounds conservatively (in the protocol's favor) to protect liquidity providers, so the actual trigger sits a hair earlier than a back-of-envelope calculation suggests. Keep a small buffer: watch your margin in the position panel and top up collateral early. See [Margin management](/trade/margin-management) for how to add or remove collateral mid-trade.
+
+<Tip>
+The initial margin is **50 bps** (0.5%), so the most you can *open* is 200×. A fresh 200× position has a **10 bps** margin above its liquidation price (initial 50 − maintenance 40) that the 10 bps open fee fully consumes — so it opens essentially **at** its liquidation point. This is why most traders use much lower leverage — every step down adds real cushion. Maintenance margin is **40 bps** venue-wide.
+</Tip>
+
+<Warning>
+**Off-hours price drift.** Parquet trades 24/7, so you can be liquidated overnight or over a weekend. Off-hours pricing comes from an off-exchange reference feed rather than the underlying US equity venues, so the price your position is marked against can drift from where the underlying would actually trade at next-open. Off-hours risk parameters are tighter (the OI cap drops from $5M to $500K and an ADL tail-backstop is armed; the leverage tiers themselves are the same in every session) but the drift risk is real. Size off-hours exposure assuming the off-hours mark may not perfectly track the underlying.
+</Warning>
+
+## What the liquidator earns
+
+When you are liquidated, two payouts happen in one step:
+
+1. **Trader settlement.** Any remaining equity — collateral plus realized PnL minus funding and borrow fees — is paid back to the trader's vault.
+2. **Liquidator reward.** A bounty equal to **50 bps** of the remaining collateral is paid to whoever triggered the liquidation, up to a cap that limits how much of your remaining equity can be spent on the reward and settlement.
+
+<Note>
+You don't pay the liquidator out of pocket — it comes out of your remaining equity.
+</Note>
+
+## Queue clawback
+
+If you opened a position using collateral drawn from the [LP payout queue](/earn/lp-payout-queue), a liquidation also cancels the matching queued payouts before releasing your collateral, so that queue-funded collateral cannot become a loss for liquidity providers.
+
+<Warning>
+You won't see queue clawback unless you specifically opened a position funded from the payout queue. For ordinary collateral deposits, only the two payouts above apply.
+</Warning>

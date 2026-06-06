@@ -1,0 +1,32 @@
+---
+title: Security
+description: How to report a security vulnerability in Parquet — responsible disclosure via a private channel, scope, and process.
+audience: trader
+---
+
+If you believe you have found a security vulnerability in Parquet, please report it **privately**. Do not open a public GitHub issue and do not post details in the public [Telegram channel](https://t.me/parquetexchange) — public disclosure of an unpatched flaw puts every trader's funds at risk.
+
+## How to report
+
+Report it **privately by Telegram direct message to `@parquetexchange`** with a description of the issue and, ideally, a proof of concept or reproduction steps. Send it as a **private DM** — do not post vulnerability details in the public channel, and do not open a GitHub issue.
+
+Please give us a reasonable window to investigate and ship a fix before disclosing the issue anywhere publicly.
+
+## Scope
+
+In scope:
+
+- The six on-chain programs (the perp engine, oracle adapter, liquidity pool, staking, fee distributor, and price-feed programs). See [Contracts](/network/contracts) for the program IDs.
+- The public indexer API. See [API](/network/api).
+
+Out of scope: third-party infrastructure, dependencies, and services we do not operate; denial-of-service against public endpoints; and findings that require physical access to a user's device or social engineering.
+
+## Good-faith safe harbor
+
+We will not pursue or support legal action against researchers who, in good faith:
+
+- Report a vulnerability through the private channel above.
+- Avoid privacy violations, data destruction, and any disruption to the protocol or other users.
+- Give us a reasonable opportunity to remediate before any public disclosure.
+
+Testing should never put other users' funds or positions at risk. If in doubt about whether an action is in scope, ask first.

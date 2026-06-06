@@ -1,0 +1,54 @@
+---
+title: Staking & Rewards
+description: Stake tokens to earn protocol fee distributions and emission rewards — pool types, tier multipliers, and reward mechanics.
+---
+
+Stake tokens to earn a share of protocol fee distributions and token emission rewards. Staking requires a lockup — your tokens are committed for 7, 90, or 180 days depending on the tier you choose, and higher tiers earn a larger reward share. Parquet supports two types of staking pools, each with tier-based lockup multipliers that increase your reward share. See [$PARQ token](/staking/tokenomics) for the token's supply, allocation, and how it accrues value.
+
+<Note>
+  Protocol-token staking is **live on mainnet**: stake **PARQ** (an SPL
+  **Token-2022** mint) to earn a claimable USDC share of protocol fee
+  distributions, weighted by your lockup tier. The **emission-schedule** pools
+  described below are a planned mechanic and are **not yet live**. The separate
+  LP **farm** at `/farm` (the LP cut of trading fees) is **not yet live** —
+  coming soon.
+</Note>
+
+## Pool types
+
+| Pool type | Reward source | How rewards accrue |
+|-----------|---------------|-------------------|
+| Balance-Based | USDC from protocol fee distributions | Proportional to your weighted stake vs. the pool total |
+| Emission Schedule | Token emissions from a pre-funded reward vault | Tokens released on a decay curve — faster early, slower late |
+
+**Balance-Based pools** distribute USDC that flows from the protocol's fee distribution process. When fees are swept from the trading pool and distributed, the staker share is added to the pool's rewards. Your share of rewards is proportional to your weighted stake relative to the total weighted stake in the pool.
+
+**Emission Schedule pools** distribute tokens from a pre-funded vault on a concave decay curve. More tokens are released early in the emission period, tapering over time. For the exact emission curve, see [Staking emissions](/developer/staking-emissions).
+
+## Tier-based lockup multipliers
+
+When you stake, you select a lockup tier. Higher tiers multiply your effective stake, giving you a larger share of rewards — but your tokens are locked for the tier's duration. Lockups are 7 days (2×), 90 days (10×), or 180 days (50×). During the lockup your tokens cannot be withdrawn — choose a tier you are comfortable committing to for that full period.
+
+| Lockup | Multiplier |
+|--------|------------|
+| 7 days | 2× |
+| 90 days | 10× |
+| 180 days | 50× |
+
+There are three lockup tiers, and every tier locks your tokens for its full duration — there is no unlocked tier. Your **weighted stake** is your staked amount multiplied by your tier's multiplier. Rewards are distributed proportionally across all stakers based on weighted stake.
+
+## Staking actions
+
+- **Stake** — Deposit tokens into a pool and select a tier.
+- **Unstake** — Withdraw your staked tokens after your tier's lockup period (7, 90, or 180 days) has elapsed.
+- **Claim** — Withdraw accrued rewards without unstaking your position.
+- **Claim & Restake** — Claim your Emission Schedule pool rewards and restake them into a Balance-Based pool in a single transaction.
+
+## How rewards flow
+
+1. Trading fees are accumulated in the liquidity pool.
+2. Fees are swept to the fee distributor (anyone can trigger this — it does not depend on the team).
+3. The fee distributor splits fees — the staker share flows to the Balance-Based staking pool.
+4. Rewards accrue proportionally based on each staker's weighted stake.
+
+For emission pools, rewards are released from the vault according to the decay schedule and accrue to stakers in the same proportional manner.

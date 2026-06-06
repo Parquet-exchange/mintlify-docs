@@ -1,0 +1,375 @@
+---
+title: Indexer API
+description: Parquet indexer REST and WebSocket reference — events, OHLCV, stats, fees, staking, leaderboard, payout queue, orderbook, market hours, /health, /ws.
+audience: developer
+---
+
+**Base URL:** `https://api.parquet.exchange`
+
+The indexer is the public read API for on-chain perp activity and market-hours metadata. It ingests Anchor event logs and price updates, persists them to Postgres, and exposes a REST surface plus a `/ws` WebSocket for realtime broadcasts.
+
+**Rate limit:** an in-process limit enforced by the indexer service; overflow returns `429`.
+
+**CORS:** restricted to Parquet's official frontends. Server-to-server callers (no `Origin` header) are unaffected. For integration allowlisting, contact the team.
+
+All timestamps in request params and response payloads are unix seconds unless explicitly stated otherwise.
+
+## Authentication
+
+| Surface | Auth |
+|---|---|
+| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/orderbook`, `/queue/*`, `/market-hours`) | None |
+| `/health` | None |
+| WebSocket `/ws` | None |
+
+## GET /events
+
+Returns Anchor events decoded from on-chain logs, in chronological order. Cursor-paginated.
+
+**Query params:**
+
+| Param | Type | Notes |
+|---|---|---|
+| `cursor` | string | Opaque cursor from a previous response's `nextCursor`. Omit for the first page. |
+| `market` | string | Optional market filter. Use canonical symbol (e.g. `AAPL`) or `GLOBAL` for cross-market events. |
+| `event_type` | string | Optional event-name filter (`PositionOpened`, `PositionClosed`, `FundingUpdated`, etc.). |
+| `limit` | number | Page size, capped server-side. |
+
+**Response:**
+
+```typescript
+type EventsResponse = {
+  events: Array<{
+    signature: string;
+    event_index: number;
+    slot: number;
+    block_time: number;       // unix seconds
+    market: string;           // canonical symbol or "GLOBAL"
+    event_type: string;
+    payload: Record<string, unknown>;
+  }>;
+  nextCursor: string | null;
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/events?market=AAPL&event_type=PositionOpened&limit=50'
+```
+
+```json
+{
+  "events": [
+    {
+      "signature": "5Kp...",
+      "event_index": 0,
+      "slot": 312456789,
+      "block_time": 1715731200,
+      "market": "AAPL",
+      "event_type": "PositionOpened",
+      "payload": { "trader": "...", "sizeUsdc": "1000000000", "side": 0 }
+    }
+  ],
+  "nextCursor": "eyJzbG90IjozMTI0NTY3ODl9"
+}
+```
+
+<Note>
+Valid markets are the 15 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `SPY`, `QQQ`. The inactive symbols (`MSFT`, `META`, `PLTR`, `GLD`, `SMCI`, `USO`) are recognized by the indexer for historical reasons but have no live oracle feed — opens against them revert at the price-staleness check.
+</Note>
+
+<Note>
+`event_index` counts only successfully-decoded Anchor events within a transaction. Non-matching log lines do not advance it, so gaps in `event_index` are expected.
+</Note>
+
+## GET /ohlcv
+
+Time-windowed OHLCV candles built from indexed price rows.
+
+**Query params:**
+
+| Param | Type | Notes |
+|---|---|---|
+| `market` | string | Canonical symbol, required. |
+| `resolution` | string | Candle width — e.g. `1m`, `5m`, `1h`, `1d`. |
+| `from` | number | Window start, unix seconds. |
+| `to` | number | Window end, unix seconds. |
+| `limit` | number | Max candles returned. |
+
+**Response:**
+
+```typescript
+type OhlcvResponse = {
+  market: string;
+  resolution: string;
+  candles: Array<{
+    t: number;   // bucket start, unix seconds
+    o: number;   // open  — raw mantissa / 100 (USD)
+    h: number;
+    l: number;
+    c: number;
+    v: number;   // volume in USDC
+  }>;
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/ohlcv?market=AAPL&resolution=1m&from=1715731200&to=1715734800'
+```
+
+<Warning>
+`/ohlcv` returns **raw mantissa / 100** for price fields. The WebSocket price feed broadcasts **mantissa × 10^7** (1e9-normalized). Both yield USD but the divisors differ — see [WebSocket /ws](#websocket-ws) below. Do not mix formats.
+</Warning>
+
+## GET /stats?market=SYMBOL
+
+24-hour rolling stats for one market. Cached server-side for 30 seconds per market.
+
+**Response:**
+
+```typescript
+type StatsResponse = {
+  market: string;
+  volume24h: string;        // USDC
+  high24h: number;          // raw mantissa / 100
+  low24h: number;
+  priceChange24h: number;   // signed delta
+  priceChangePct24h: number;
+  trades24h: number;
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/stats?market=TSLA'
+```
+
+## GET /fees?market=SYMBOL
+
+Fee accrual and distribution totals for the trailing 24 hours, plus the most recent distribution. 30-second per-market cache.
+
+```typescript
+type FeesResponse = {
+  market: string;
+  accrued24h: string;       // USDC raw
+  swept24h: string;
+  distributed24h: string;
+  lastDistribution: {
+    signature: string;
+    block_time: number;
+    amount: string;
+  } | null;
+};
+```
+
+## GET /staking
+
+Global staking snapshot. APR, staker count, recent distributions. 60-second cache.
+
+```typescript
+type StakingResponse = {
+  aprBps: number;
+  totalStaked: string;
+  stakers: number;
+  recentDistributions: Array<{
+    signature: string;
+    block_time: number;
+    amount: string;
+  }>;
+};
+```
+
+## GET /staking/history?owner=PUBKEY
+
+Per-owner staking event history (stake, unstake, claim, restake). Cursor-paginated. `owner` is required.
+
+```typescript
+type StakingHistoryResponse = {
+  owner: string;
+  entries: Array<{
+    signature: string;
+    block_time: number;
+    event_type: string;
+    payload: Record<string, unknown>;
+  }>;
+  nextCursor: string | null;
+};
+```
+
+## GET /leaderboard
+
+Trader PnL aggregation. CTE-joined from `PositionOpened` (volume, size) and `PositionClosed` (PnL, trades, wins). 60-second cache.
+
+**Query params:**
+
+| Param | Type | Allowed | Default |
+|---|---|---|---|
+| `timeframe` | string | `24h`, `7d`, `30d`, `all` | `7d` |
+| `sort` | string | `pnl`, `volume`, `trades`, `winRate` | `pnl` |
+| `limit` | number | ≤ 100 | 100 |
+
+```typescript
+type LeaderboardResponse = {
+  timeframe: string;
+  sort: string;
+  rows: Array<{
+    trader: string;
+    pnl: string;
+    volume: string;
+    trades: number;
+    wins: number;
+    winRate: number;       // 0..1
+  }>;
+};
+```
+
+## GET /orderbook?market=SYMBOL
+
+Aggregated trigger orderbook from on-chain `OrderAccount`s for the given market. Each side is capped at **25 levels**. Responses are cached briefly server-side so concurrent requests share one RPC call.
+
+```typescript
+type OrderbookResponse = {
+  market: string;
+  bids: Array<{ price: number; size: string }>;   // descending
+  asks: Array<{ price: number; size: string }>;   // ascending
+  spread: number | null;
+  midPrice: number | null;
+};
+```
+
+## GET /queue/:marketId
+
+V4 LP-payout queue snapshot for one market. Derived from indexed queue events (`Enqueued`, `Harvested`, `EntryVoided`, `SideBucketCredited`, `QueueDrained`, `PhantomCreditDrained`).
+
+```typescript
+type QueueMarketResponse = {
+  marketId: string;
+  head: number;
+  tail: number;
+  totalOwed: string;                     // USDC raw
+  depth: number;                         // pending entries
+  sideBucket: string | null;             // see caveat
+  estimatedDrainSeconds: number | null;  // see caveat
+};
+```
+
+<Warning>
+`sideBucket` and `estimatedDrainSeconds` may be `null` when not yet derivable; use `head`/`tail`/`totalOwed`/`depth`.
+</Warning>
+
+See [Payout queue](/trade/payout-queue) for the user-facing semantics of these fields.
+
+## GET /queue/user/:wallet
+
+Per-wallet view: every queue entry across markets plus a per-market claims aggregate.
+
+```typescript
+type QueueUserResponse = {
+  wallet: string;
+  entries: Array<{
+    market_id: string;
+    idx: number;
+    status: "pending" | "harvested" | "voided";
+    amount: string;
+    enqueued_at: number;
+    slot: number;
+  }>;
+  claims: Array<{
+    market_id: string;
+    unpaid_owed: string;
+    collateral_drawn: string;
+    phantom_unpaid_owed: string;
+  }>;
+};
+```
+
+## GET /market-hours
+
+Proxy to an upstream market-calendar provider's clock plus the next-session edges from its calendar, cached server-side for **30 seconds**. Returns enough state for the frontend's `SessionBanner` to render the current pricing regime — `rth` / `blend` / `off_hours` — and the boundary at which the next regime starts. The banner polls this every 60 seconds.
+
+```typescript
+type MarketHoursResponse = {
+  is_open: boolean;
+  timestamp: string;   // ISO 8601, UTC
+  next_open: string;   // ISO 8601, UTC
+  next_close: string;  // ISO 8601, UTC
+  session: "rth" | "blend" | "off_hours";
+  boundary_at: number; // unix seconds of the next session change
+  now: number;         // unix seconds at request time (server clock)
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/market-hours'
+```
+
+`session` is the canonical signal for the pricing regime: `rth` means Pyth's on-chain `PriceUpdateV2` is the primary read for the free-RTH markets; `blend` means the relayer is in the 10-minute weighted blend at the RTH boundary; `off_hours` means pricing comes from an **off-exchange reference feed**. **Trading is live in all three regimes** — there is no longer an RTH-halt that reverts state-changing instructions. The `boundary_at` and `now` fields are computed off the server clock at request time, so even when the upstream clock body is cached stale-on-error, the session derivation stays current. (`is_open` is preserved for backwards compatibility; it equals `session === "rth"`.)
+
+## GET /health
+
+Readiness signal for the indexer. Returns `200` when data is fresh and `503` when stale (or on internal failure).
+
+```typescript
+type HealthResponse = {
+  status:        "ok" | "stale" | "error";
+  lastEventAge:  number;   // seconds
+  lastPriceAge:  number;   // seconds
+  wsClients:     number;
+};
+```
+
+## GET /health/live
+
+Liveness probe — orthogonal to `/health`'s readiness signal. Always returns `200` whenever the process is up and the DB is reachable, regardless of data age. Off-hours `/health` may return `503` (stale prices by design); external monitors that only treat `200` as healthy should poll `/health/live` instead so they don't page on every weekend / holiday session.
+
+## WebSocket /ws
+
+Realtime price and event broadcasts.
+
+**Connection:** `wss://api.parquet.exchange/ws`
+
+The WebSocket stays connected across the RTH-to-off-hours transition; `price` messages keep arriving at the 1-second tick cadence, only the source set changes (Pyth-primary during RTH; the relayer-written off-hours reference outside RTH). A 10-minute blend window at each session boundary smooths the transition.
+
+**Message shapes:**
+
+```typescript
+type PriceMessage = {
+  type: "price";
+  market: string;
+  // mantissa * 10^7 (1e9-normalized — divide by 1e9 for USD)
+  price: string;
+  ts: number;
+};
+
+type EventMessage = {
+  type: "event";
+  market: string;        // canonical symbol, or "GLOBAL"
+  event_type: string;
+  signature: string;
+  payload: Record<string, unknown>;
+};
+```
+
+**Limits:** connection and message-rate limits apply. New connections are refused once the server-wide cap is reached, and clients that exceed the inbound message rate are closed with code `1008`.
+
+`GLOBAL` events (e.g. parameter updates, distributions) broadcast to **every** connected client regardless of any subscription state.
+
+<Warning>
+**Price format split.** The WebSocket emits `mantissa × 10^7` (1e9-normalized — e.g. `114000000000` for $114.00). The REST `/ohlcv` endpoint returns raw mantissa / 100 (e.g. `11400` for the same price). Both produce USD when scaled correctly, but the divisors are different (`1e9` vs `100`). Pick the right one per data source.
+</Warning>
+
+## Rate limits and errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Invalid params (bad `resolution`, unparseable `cursor`, etc.) |
+| `404` | Unknown market — not in `VALID_MARKETS` |
+| `429` | Rate limit exceeded |
+| `500` | Server-side decode or DB error |
+| `503` | Indexer temporarily unavailable (stale data or internal failure) |
+
+Rate limits are enforced per client; exceeding them returns `429`.
+
+## See also
+
+- [Payout queue](/trade/payout-queue) — user-facing semantics of `/queue/*` responses.
+- [Contracts](/network/contracts) — program IDs that emit the events this API indexes.
+- [SDK](/developer/sdk) — typed client wrappers around these endpoints.

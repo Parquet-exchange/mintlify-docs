@@ -1,0 +1,113 @@
+---
+title: LP payout queue (on-chain)
+description: What the v4 FIFO payout queue means for Parquet LPs — free liquidity gating, the side bucket, harvest rewards, bad-debt routing.
+audience: developer
+---
+
+If you are providing liquidity to Parquet, the v4 payout queue changes the
+mental model you should use for your position. Your headline LP balance is no
+longer the same thing as the cash you can pull out, and pool gains from losing
+trades temporarily live somewhere other than your balance. This page explains
+exactly where the money sits, how it flows, and what to watch.
+
+## Your balance vs. what you can withdraw
+
+The pool's `total_usdc` field is the headline number — the sum of LP capital
+parked in the vault. It is not, however, the same as the amount you can
+withdraw. Withdrawals are gated by a derived quantity:
+
+```
+free_liquidity = total_usdc − reserved_usdc − queue_total_owed
+```
+
+`reserved_usdc` is the collateral set aside to back open positions, the way it
+always has been. The new piece in v4 is `queue_total_owed`: the sum of every
+unpaid winning close sitting in the FIFO payout queue. When a trader closes a
+profitable position and the pool cannot pay them immediately, the obligation
+goes into the queue and that exact dollar amount becomes locked LP capital
+until it is paid out.
+
+<Warning>
+This is the most non-obvious LP-facing fact in v4. `total_usdc` can look
+healthy while [`free_liquidity`](/reference/glossary#free-liquidity) is near
+zero, because outstanding queue obligations are subtracted from what you can
+pull. Check `free_liquidity`, not `total_usdc`, before you size a withdrawal.
+</Warning>
+
+## Where LP gains park: the side bucket
+
+When a losing trader closes and the queue is non-empty, the LP gain is routed
+into a new pool field called [`side_bucket`](/developer/glossary#side-bucket)
+rather than directly into `total_usdc`.
+
+The side bucket exists for one reason: so the next `harvest` call has a pile
+of cash to pay queue entries from without dipping into your LP balance. As
+losing closes accumulate, the side bucket grows; as harvests run, it drains
+into the pockets of the queued winners.
+
+When the queue is fully drained — `queue_total_owed = 0` and no entries
+remain — the side bucket flushes back into `total_usdc` and the pool resumes
+simpler accounting until the queue fills again.
+
+## Harvesting is permissionless and pays the caller
+
+Anyone holding a few cents of SOL can call `harvest(max_entries: u8)` on a
+pool, where `max_entries` is a caller-chosen per-call batch ceiling (the
+keeper uses 8) — a compute-budget / transaction-size guard, not a hard cap.
+Each entry the call
+successfully pays out closes a queue account that originally cost the trader
+around $0.30 of SOL rent at enqueue time — that rent is refunded to whoever
+calls harvest.
+
+<Tip>
+Harvest is net-positive for the caller: the SOL rent refund exceeds the
+transaction fee. This is the protocol's incentive design — anyone in the
+world can permissionlessly drain queue obligations and pocket the rent. You
+do not need to wait on the Parquet team or a privileged keeper.
+</Tip>
+
+<Note>
+Parquet's official keeper runs `harvest` on a loop 24/7, with a pre-flight that
+mirrors the on-chain early-break — it harvests once the side bucket can cover
+the next entry, so neither the chain nor the keeper burns lamports on no-ops.
+The oracle read inside `harvest` succeeds in every session under the pyth-hybrid
+oracle (Pyth primary during RTH; the relayer-written `PriceFeed` PDA carrying
+the off-hours reference).
+</Note>
+
+## Bad debt eats the side bucket first
+
+When a position is liquidated for less than its remaining obligations to the
+pool, the shortfall — bad debt — has to come out of somewhere. In v4 the
+routing is:
+
+| Queue state | First sink | Fallback |
+|-------------|-----------|----------|
+| Active (entries pending) | `side_bucket` | `total_usdc` (only if side bucket empty) |
+| Empty | `total_usdc` | — |
+
+The practical effect is a buffer for LPs: while there are still queue
+obligations outstanding, bad debt is absorbed by gains that would otherwise
+have been queued up to pay them. Your LP balance is only touched when both
+the side bucket is empty and the queue's needs are still unmet.
+
+## What to monitor
+
+Queue depth is a useful real-time proxy for how much of `total_usdc` is
+"soft" — i.e. committed to upcoming payouts. The indexer exposes this per
+market:
+
+```
+GET /queue/:marketId
+```
+
+The response uses the camelCase API contract: `head`, `tail`, `totalOwed`,
+`depth`, `sideBucket`, and `estimatedDrainSeconds` (`sideBucket` and
+`estimatedDrainSeconds` may be `null` when not yet derivable — fall back to
+`head`/`tail`/`totalOwed`/`depth`). A high `depth` with a small `sideBucket`
+means harvest activity has not kept up and `free_liquidity` is likely tight
+on this market; a high `sideBucket` with low `depth` means harvest is
+running and your balance is being shielded as intended. See
+[`/network/api`](/network/api) for the full schema and rate limits, and
+[`/developer/payout-queue`](/developer/payout-queue) for the trader side of the
+same mechanism.

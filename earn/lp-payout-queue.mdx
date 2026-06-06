@@ -1,0 +1,42 @@
+---
+title: The payout queue for LPs
+description: What the payout queue means if you provide liquidity to Parquet — when withdrawals can be delayed and how the pool stays solvent.
+audience: trader
+---
+
+If you provide liquidity to Parquet, the payout queue is the one thing worth
+understanding before you size a withdrawal. Parquet trades on Solana mainnet,
+and on a busy market your headline LP balance is not always the same as the
+cash you can pull out right now. This page explains what to expect.
+
+## When a withdrawal can be delayed
+
+Most of the time you can withdraw freely. A withdrawal can be queued when the
+pool's spare cash is tied up — either backing open positions or already owed
+to traders who have closed winning trades but have not yet been paid. The pool
+will only release what it can pay without leaving those obligations short, so
+your withdrawal may settle in pieces or wait briefly until liquidity frees up.
+
+This is honest and expected behaviour, not a fault: a winning trader's payout
+can be delayed, and so can an LP withdrawal. The amount you can actually pull
+is your free liquidity, which is usually close to your balance but can run
+tight on a market with heavy winning flow.
+
+## How the pool keeps paying
+
+When traders lose, those gains are set aside to pay the traders still waiting
+to be paid, rather than landing straight in your balance. Payouts then clear
+in the order they were queued. Once everyone in line has been paid, the
+set-aside cash folds back into the pool and your balance reflects it again.
+
+Anyone can trigger these payouts, and Parquet also runs a service that clears
+the queue continuously, so you are never waiting on a single party to act.
+
+## How bad debt is handled
+
+If a position is liquidated for less than it owed the pool, that shortfall is
+absorbed first by the gains set aside for queued payouts — a buffer that
+shields LP balances. Your balance is only drawn on when that buffer is empty
+and the queue still has obligations to meet.
+
+For the on-chain mechanics, see [The payout queue for LPs](/developer/lp-payout-queue).

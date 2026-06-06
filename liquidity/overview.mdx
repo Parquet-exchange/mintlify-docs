@@ -1,0 +1,59 @@
+---
+title: Providing liquidity
+description: How Parquet's per-market USDC liquidity pools work — depositing, withdrawing, earning fees, and understanding risks.
+---
+
+<Note>
+  The public LP **farm** (`/farm`) is **not yet live** — depositing USDC as a
+  liquidity provider is coming soon. This page describes the mechanics for when
+  it opens. (Trading runs against the per-market pools today; what is pending is
+  the public LP-deposit surface.)
+</Note>
+
+## How pools work
+
+Each Parquet market has its own isolated USDC liquidity pool. When you deposit USDC into a market's pool, you receive LP tokens proportional to your share of that pool's total value. The pool is the counterparty to every trade in its market: when traders profit, the pool pays out; when traders lose, the pool earns.
+
+Pools are not shared across markets. A run of profitable AAPL traders affects only the AAPL pool's LP token value; the SPY pool is unaffected.
+
+## Depositing
+
+Deposit USDC into a market's pool to mint that pool's LP tokens. The number of LP tokens you receive is based on the current pool value at the time of deposit.
+
+The first deposit into an empty pool requires a minimum of $100 USDC. This prevents manipulation of the initial LP token price. Subsequent deposits have no minimum.
+
+## Withdrawing
+
+Burn LP tokens to receive USDC from the same pool. The amount of USDC returned depends on the current pool value — total USDC held minus amounts reserved for open positions and amounts owed to the LP-payout queue.
+
+If pool utilization is high (a large portion of USDC is reserved for open positions), you may need more than one withdrawal to exit your full LP position. The excess is queued on-chain and paid out automatically, in order, as positions close and liquidity frees up — you still receive the full USDC value of your LP tokens, just over more than one step. See the [LP payout queue](/earn/lp-payout-queue) for the full lifecycle.
+
+## How LPs earn
+
+LPs earn through the fee accrual mechanism. On every trade in a given market, the LP share of the position fee is added directly to that market's pool USDC value. This increases the value of each LP token over time.
+
+- LP token value **increases** as fees accumulate and as traders realize losses.
+- LP token value **decreases** when traders realize profits.
+
+Over time, if fee income exceeds net trader profits, LP token value trends upward.
+
+## Reserve factor
+
+Each pool enforces a maximum utilization ratio called the reserve factor. This limits how much of the pool's USDC can be reserved for open positions at any given time.
+
+The reserve factor protects LPs by ensuring the pool always retains a portion of its USDC for withdrawals and absorbing trader profits.
+
+## Open interest caps
+
+Each market has configurable open interest caps. The Parquet cap is **$5M per market during RTH** and **$500K per market off-hours**. When a cap is reached, no new positions can be opened on that side until existing positions are closed.
+
+## Risks
+
+Providing liquidity carries risk:
+
+- **Trader profitability:** LPs are counterparty to all traders in their market. Extended periods where traders as a group are profitable will reduce pool value and LP token price.
+- **Utilization:** High pool utilization can temporarily limit your ability to withdraw — withdrawals beyond free liquidity are queued until the keeper harvests them.
+- **Single-market exposure:** Each pool is exposed to one underlying stock or ETF. Concentrated exposure to a single ticker carries more idiosyncratic risk than a diversified pool would.
+- **Off-hours risk profile:** Parquet trades 24/7. Deposits, withdrawals, and trading remain live outside RTH; the leverage tiers are the same in every session, but off-hours tightens the per-market OI cap ($500K vs $5M) and arms an ADL tail-backstop on the payout-queue tail (a capped, last-resort socialization of the oldest unbacked queued payouts — see [Payout queue](/developer/lp-payout-queue)). LP-side mechanics — share price, harvest cadence, payout queue — work identically across sessions.
+
+For details on fees earned by LPs, see [Fees & Costs](/trading/fees).

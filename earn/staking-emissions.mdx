@@ -1,0 +1,43 @@
+---
+title: Emission-schedule staking pools
+description: What an emission-schedule staking pool pays out over time, and what claim-and-restake does for you.
+audience: trader
+---
+
+Some Parquet staking pools hand out a fixed pot of rewards over a set window
+rather than paying from a running balance. Parquet trades on Solana mainnet, and
+these pools will be part of how staking rewards reach you.
+
+<Note>
+  The balance-based protocol-token staking pool (`/stake`) is **live** — stake
+  **PARQ** (an SPL **Token-2022** mint) for a claimable USDC fee share. The
+  **emission-schedule** pools this page describes are a **planned** mechanic and
+  are **not yet live**; this page documents their mechanics for when they ship.
+</Note>
+
+## How payouts arrive over time
+
+An emission-schedule pool starts with a fixed amount of rewards and releases
+them across a fixed period. The pace is front-loaded: more rewards land early
+in the window and less land toward the end. By the halfway mark, roughly three
+quarters of the rewards have already been released.
+
+What this means for you: entering early in a pool's life captures more of the
+rewards. A pool that is most of the way through its window has a much smaller
+pot left to share, even if the headline rate looks similar. Your share of what
+is released depends on how much you have staked relative to everyone else in
+the pool.
+
+## Claim and restake
+
+Claiming moves your earned rewards to you. Claim-and-restake does both steps at
+once: it takes the rewards you have earned in one pool and stakes them straight
+into another, in a single action. That keeps your rewards working instead of
+sitting idle between a claim and a fresh stake, and there is no in-between
+moment where the rate you are about to enter shifts under you.
+
+A reward you have already earned stays yours to claim on your own schedule.
+Keep in mind that, as with the rest of the venue, a winning payout can be
+delayed and an LP withdrawal can be queued during busy periods.
+
+For the on-chain mechanics, see [Staking emissions](/developer/staking-emissions).

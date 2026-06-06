@@ -1,0 +1,70 @@
+---
+title: Fees & Costs
+description: Position fees, tiered fees, funding rates, borrowing fees, and how fees are distributed.
+---
+
+This page is the **canonical source of truth** for Parquet's fee and risk parameters. Where other pages (the [glossary](/reference/glossary), [FAQ](/reference/faq), or [Contracts](/network/contracts)) restate a number, this table is authoritative.
+
+## Fee & risk parameters at a glance
+
+| Parameter | Value |
+|-----------|-------|
+| Open / close fee — base | **0.1%** of notional |
+| Open / close fee — favorable (reduces OI imbalance) | **0.05%** of notional |
+| Funding rate cap | **10 bps/hour** |
+| Liquidation fee | **50 bps** of remaining collateral |
+| Initial margin | **50 bps** (0.5%) of notional → **200×** max openable, venue-wide |
+| Maintenance margin ratio (MMR) | **40 bps** (0.4%) venue-wide |
+| Open-interest cap per market | **$5M** during RTH / **$500K** off-hours |
+| Max leverage (tiered by position size) | **200× → 10×** — the same tiers apply RTH and off-hours (200× on the smallest tier, set by the 50 bps initial margin) |
+| Minimum collateral | **$10** USDC |
+| Fee distribution | LP **60%** / staker **25%** / treasury **10%** / referral **5%** |
+
+The remaining sections explain each of these in more detail.
+
+## Position fees
+
+A fee is charged when you open or close a position. The fee is calculated as a percentage of the position size.
+
+Each market has a **base fee rate** applied to all trades. Markets also support a **favorable fee rate** — a lower rate applied to trades that reduce the open interest imbalance between longs and shorts. This incentivizes balanced open interest across the protocol.
+
+| Action | OI effect | Fee rate applied |
+|--------|-----------|-----------------|
+| Open long when long OI > short OI | Increases imbalance | Base rate |
+| Open long when long OI < short OI | Reduces imbalance | Favorable rate |
+| Close long when long OI > short OI | Reduces imbalance | Favorable rate |
+| Close long when long OI < short OI | Increases imbalance | Base rate |
+
+The same logic applies in reverse for short positions. When favorable fees are not configured for a market, the base rate is used for all trades.
+
+## Funding rate
+
+The funding rate is a periodic payment between long and short position holders, based on the open interest imbalance.
+
+- The side with **larger aggregate open interest** pays the other side.
+- Funding accrues continuously and is settled when you close or modify your position.
+- The funding rate is updated automatically at regular intervals.
+- The funding rate is capped at **10 bps/hour** on Parquet.
+
+Funding incentivizes balanced open interest: when one side dominates, its holders pay a premium to the other side.
+
+## Borrowing fees
+
+Borrowing fees are a time-based cost proportional to your position size and pool utilization. They accrue continuously from the moment you open a position until you close it.
+
+Borrowing fees are charged on position close, margin update, or liquidation.
+
+## Fee distribution
+
+All fees flow through a multi-step distribution process:
+
+1. **Accrue** — Each trade splits the fee at the pool level. The LP share goes to liquidity providers (increasing the value of their LP tokens). The remainder accumulates as pending non-LP fees.
+2. **Distribute** — The remaining collected fees are periodically distributed to stakers, the treasury, and the referral reward pool.
+
+## Deposit and withdrawal fees
+
+The liquidity pool may charge a fee on deposits and withdrawals. When applicable, the fee is deducted before LP tokens are minted (on deposit) or before USDC is returned (on withdrawal).
+
+## Minimum collateral
+
+Positions require a minimum of $10 USDC collateral. This applies when opening a position, creating an increase order, partially closing a position (remaining collateral must stay above $10), and removing margin.

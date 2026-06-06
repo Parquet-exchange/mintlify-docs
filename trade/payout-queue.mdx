@@ -1,0 +1,21 @@
+---
+title: The payout queue
+description: What happens when a winning close can't be paid in full right away — your payout is reserved and lands as the queue drains.
+audience: trader
+---
+
+When you close a winning position on Parquet, one of two things happens: you're paid out instantly from the pool, or — when the pool's free cash is committed to other positions — your payout is held for you and paid as liquidity allows. Either way your full amount is preserved; it is never cut.
+
+## What happens if the pool is briefly short
+
+If there isn't enough free liquidity to pay your winning close in full the moment you close, the unpaid part is reserved for you and takes a spot in a first-in, first-out line. You're never haircut: you either get paid in full right away, or you get a specific place in line and the rest follows.
+
+The line refills as other traders' losing positions close and as new deposits arrive, which returns cash to the pool. As that cash builds up, reserved payouts are settled in order — the oldest claim first — around the clock.
+
+## What it means for you
+
+A winning payout can be delayed when the pool's free cash is committed — that's the honest tradeoff for paying winners out of a finite pool instead of broadly clawing back gains. There is no guaranteed payout time — a reserved payout is paid only as other traders' losses and new LP deposits refill the pool, so in a heavily one-sided market the wait can be substantial. While your payout is reserved, you don't have to sit and wait: you can put a reserved amount straight back to work in a new position, or pull it back to your wallet once the line has cleared.
+
+In an extreme, sustained off-hours imbalance, a **last-resort backstop** can apply a capped, pro-rata haircut to the oldest unbacked payouts in the queue (auto-deleveraging) so the tail cannot grow without bound. It targets only the aged, unbacked head of the queue and is bounded by a hard ceiling — it does not touch your open position or your collateral, only an as-yet-unpaid queued amount, and only after a high trigger and dwell window. See [Risks](/reference/risks#adl-tail-backstop).
+
+For the on-chain mechanics, see [The payout queue](/developer/payout-queue).

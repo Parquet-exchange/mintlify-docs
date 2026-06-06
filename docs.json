@@ -1,0 +1,45 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Parquet",
+  "theme": "mint",
+  "colors": {
+    "primary": "#B8893E",
+    "light":   "#D9B270",
+    "dark":    "#825F2C"
+  },
+  "logo": {
+    "light": "/logo/logo.svg",
+    "dark":  "/logo/logo.svg"
+  },
+  "favicon": "/logo/favicon.svg",
+  "seo": {
+    "metatags": {
+      "og:image":       "/logo/og-image-v3.jpg",
+      "og:title":       "Parquet — Docs",
+      "og:description": "Decentralized perpetuals on Solana for 15 US stock + ETF perp markets — trading 24/7. USDC collateral, tiered leverage up to 200×, on-chain oracle price feeds.",
+      "twitter:card":   "summary_large_image"
+    }
+  },
+  "navbar": {
+    "links": [
+      { "label": "Telegram", "href": "https://t.me/parquetexchange" },
+      { "label": "App",      "href": "https://parquet.exchange" }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "telegram": "https://t.me/parquetexchange",
+      "website":  "https://parquet.exchange"
+    }
+  },
+  "navigation": {
+    "groups": [
+      { "group": "Get started", "pages": ["introduction", "getting-started/wallet-setup", "getting-started/first-trade"] },
+      { "group": "Trade",       "pages": ["trading/overview", "trading/order-types", "trading/fees", "trade/liquidations", "trade/margin-management", "trade/payout-queue"] },
+      { "group": "Earn",        "pages": ["liquidity/overview", "staking/overview", "staking/tokenomics", "referrals", "earn/lp-payout-queue", "earn/staking-emissions", "earn/referrals-lifecycle"] },
+      { "group": "Network",     "pages": ["network/api", "network/contracts"] },
+      { "group": "Developer",   "pages": ["developer/sdk", "developer/partial-close", "developer/payout-queue", "developer/lp-payout-queue", "developer/staking-emissions", "developer/referrals-lifecycle", "developer/glossary"] },
+      { "group": "Reference",   "pages": ["markets", "reference/glossary", "reference/faq", "reference/risks", "reference/security", "changelog"] }
+    ]
+  }
+}

@@ -1,0 +1,161 @@
+---
+title: Glossary
+description: Plain-language definitions for Parquet traders and LPs — payout queue, phantom credit, MMR, effective equity, free liquidity, funding, leverage, and the rest.
+audience: trader
+---
+
+Plain-language definitions for the terms you'll meet while trading or providing liquidity on Parquet. For on-chain accounts, PDA seeds, and program internals, see [the developer glossary](/developer/glossary).
+
+## B
+
+### Bad debt
+
+When a position's loss is larger than the collateral backing it — usually after a violent price move closes the gap faster than a liquidation can. Parquet's risk model makes this rare, but it is possible in extreme conditions. **Any shortfall is absorbed by the LP pool**: it is not clawed back from traders who were on the winning side, and profitable positions are never force-closed to plug the hole. If you provide liquidity, this is the core risk you are taking on.
+
+See: [Liquidations](/trade/liquidations)
+
+### Borrowing fee
+
+A small, continuous fee charged on the full size of an open position for as long as it stays open. It compensates LPs for backing the other side of your trade. The fee accrues every second and is deducted from your collateral whenever your position is touched (opening, adjusting, closing, or a liquidation check), so it steadily reduces your effective equity over time.
+
+See: [Fees](/trading/fees)
+
+## C
+
+### Collateral
+
+The USDC you post to back an open position. It is held in the market's vault and is reduced by realised losses, funding payments, and borrowing fees — and increased by realised profits when you close a winning trade. The minimum position size is $10 USDC.
+
+See: [Margin management](/trade/margin-management)
+
+## E
+
+### Effective equity
+
+What your position is really worth right now: your collateral, plus or minus your unrealised profit/loss at the current price, minus any funding and borrowing fees you've accrued. This is the number that matters for liquidation — if your effective equity divided by your position size falls below the maintenance margin ratio (MMR), you get liquidated. Because unrealised profit counts toward effective equity, a winning position can't be liquidated by fees alone.
+
+See: [Liquidations](/trade/liquidations)
+
+### Emission schedule
+
+The curve that determines how fast staking rewards are paid out: faster early on, then slowing over time, with a fixed total cap. Any rewards you haven't claimed keep accumulating until you claim them (or claim-and-restake).
+
+See: [Staking emissions](/earn/staking-emissions)
+
+## F
+
+### Free liquidity
+
+The part of the LP pool that's currently available to pay out winning trades — that is, total pool liquidity minus the liquidity already reserved against open winners. When you close a profitable position, Parquet pays you immediately if there's enough free liquidity; if there isn't, your payout joins the payout queue and is paid as liquidity frees up.
+
+See: [LP payout queue](/earn/lp-payout-queue)
+
+### Funding rate
+
+A periodic payment that flows between longs and shorts depending on which side is more crowded. If longs outweigh shorts, longs pay shorts (and vice versa). It accrues continuously on every open position and is settled into your collateral the next time your position is touched. Funding is capped at 10 bps per hour.
+
+See: [Liquidations](/trade/liquidations)
+
+## L
+
+### Liquidation
+
+The forced closing of a position whose effective equity has dropped below the maintenance margin ratio (MMR) times its size. Liquidation is open to anyone — Parquet runs a keeper that does it automatically, but any party can trigger it. The liquidator earns a fixed fee (50 bps) out of what's left of the collateral; the remainder goes back to the LP pool.
+
+See: [Liquidations](/trade/liquidations)
+
+### LP fee share
+
+The share of trading-fee revenue paid to liquidity providers — currently **60%**. The remaining 40% splits 25% stakers / 10% treasury / 5% referral of total fees. See [Fees & Costs](/trading/fees) for the canonical fee table.
+
+See: [Liquidity overview](/liquidity/overview)
+
+## M
+
+### Mark price (vs index)
+
+Two related prices. The **index price** is the raw oracle price for the underlying asset. The **mark price** is the price your position is actually opened, closed, and valued at. In principle the mark can be adjusted for the current long/short imbalance, but that skew adjustment (price impact) is **currently disabled**, so today the mark tracks the index 1:1. When one side is heavily crowded, the imbalance is corrected through **funding**, not a mark/index gap. If skew impact were ever enabled, the mark would drift from the index to reflect that pressure.
+
+See: [Markets](/markets)
+
+### Max leverage
+
+The most position size you can take per dollar of collateral. Leverage is **tiered** by position size, and the **same tier table now applies in every session** (RTH and off-hours):
+
+- Up to **200×** on the smallest positions, stepping down to 10× on the largest — set by the 50 bps initial margin (1 ÷ IM).
+
+The size tiers are ≤ $5K, ≤ $50K, ≤ $250K, ≤ $1M, and > $1M. A fresh position opened at 200× has only a 10 bps structural margin above its liquidation price (initial 50 − maintenance 40) — fully consumed by the 10 bps open fee, so it opens essentially at its liquidation point. Most traders should use far less leverage. Off-hours, leverage is unchanged; what tightens is the OI cap ($500K) and an armed ADL tail-backstop.
+
+See: [Markets](/markets)
+
+### MMR
+
+The **maintenance margin ratio (MMR)** is the minimum ratio of effective equity to position size you must keep to avoid liquidation. It is **40 bps (0.4%)** across every market. Drop below it and your position can be liquidated by anyone. The initial margin is **50 bps**, so the most you can open is 200× — at which a position has only a **10 bps** buffer over maintenance, fully consumed by the 10 bps open fee, so even a small move against you can trigger liquidation. This is expected at the top of the leverage range; most traders use far lower leverage to give a position room to move. See [Fees & Costs](/trading/fees) for the canonical risk-parameter table.
+
+See: [Liquidations](/trade/liquidations)
+
+## O
+
+### Open interest (OI)
+
+The total size of all open positions in a market, tracked separately for longs and shorts. Each market has an OI cap so no single market builds up more directional exposure than the LP pool can safely back: **$5M per market during RTH, $500K per market off-hours**. See [Fees & Costs](/trading/fees) for the canonical risk-parameter table.
+
+See: [Markets](/markets)
+
+### Oracle price
+
+The price Parquet uses for your trades comes from external market-data feeds, pushed on-chain and validated before the protocol acts on it — bad or stale data is rejected so trades don't execute on a broken price. For the technical details of the price-feed subsystem, see [the developer glossary](/developer/glossary#oracle).
+
+## P
+
+### Payout queue
+
+A fair, first-come-first-served line for winning closes when the LP pool doesn't have enough free liquidity to pay everyone at once. Each entry records who is owed what and their place in line. As new deposits arrive and losing trades close, liquidity frees up and is paid out to the front of the queue in order. This replaces the "socialised loss" claw-backs some perpetual venues use with a simple, deterministic position-in-line.
+
+See: [Payout queue](/trade/payout-queue)
+
+### Phantom credit
+
+The amount you're owed on a winning close that has been recorded but not yet paid out, because your payout is waiting in the payout queue. Your position is fully closed for risk purposes — no more funding, no more liquidation exposure — while you wait. Once the queue reaches you, the credit is paid and settled.
+
+See: [Payout queue](/trade/payout-queue)
+
+### Position
+
+Your open trade in a single market: its direction (long or short), size, entry price, and the collateral backing it. You can hold at most one position per market.
+
+See: [Margin management](/trade/margin-management)
+
+## R
+
+### Regular Trading Hours (RTH)
+
+The US equities session: **Mon–Fri 09:30–16:00 ET**, minus US market holidays and early-close days. Parquet trades **24/7** — RTH does not decide whether the venue is open. What it decides is which pricing sources are used and which risk settings apply. The leverage tier table is the **same in every session** (up to 200×). During RTH the OI cap is $5M per market; outside RTH, pricing leans on an off-exchange reference feed, the OI cap tightens to $500K per market, and an ADL tail-backstop is armed. US holidays and early closes are detected automatically and treated as off-hours.
+
+See: [Markets](/markets), [Liquidations](/trade/liquidations)
+
+### Referrer
+
+An optional wallet bound to **your wallet** — not to an individual position — the first time you trade with a referral code. The binding is **per-wallet and permanent**: you can have only one referrer, it applies to every position you ever open, and it can't be changed afterward. The referrer earns a share of the trading fees on your trades.
+
+See: [Referrals](/referrals)
+
+### Reserved liquidity
+
+The portion of the LP pool set aside to cover the unrealised profit of currently open winning positions. It rises as open positions move further into profit, and it's one of the two inputs (the other being total pool size) that determine how much free liquidity is available to pay out closes.
+
+See: [LP payout queue](/earn/lp-payout-queue)
+
+## S
+
+### Slippage
+
+The gap between the price you expected when you signed your trade and the price you actually got when it settled. You set a maximum slippage tolerance; if the real fill would exceed it, the trade is cancelled instead of filled at a worse price.
+
+See: [Order types](/trading/order-types)
+
+### Staking pool
+
+The pool you stake into to earn a tier-weighted share of protocol fee distributions. Every staking tier locks your stake for a fixed period (7, 90, or 180 days) in exchange for a reward multiplier (×2, ×10, or ×50) — there is no unlocked tier.
+
+See: [Staking emissions](/earn/staking-emissions)

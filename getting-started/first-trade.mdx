@@ -1,0 +1,66 @@
+---
+title: Your first trade
+description: Open and close your first long perpetual position on Parquet — a seven-step walkthrough from connect to settlement.
+audience: trader
+---
+
+This walkthrough takes you from a connected wallet to a closed position. Make sure your wallet holds a small amount of SOL for transaction fees and at least $10 of USDC for collateral.
+
+<Note>
+  **Trading hours.** Parquet trades **24/7**. During regular US trading hours (Mon–Fri 09:30–16:00 ET, minus US market holidays) prices track the live US equity market. Off-hours and weekends, pricing comes from an off-exchange reference feed. A banner at the top of the app tells you whether the market is in regular trading hours, transitioning between sessions, or off-hours — off-hours leverage tiers and OI caps are tighter than RTH (see [risks](/reference/risks)).
+</Note>
+
+<Note>
+  The flow below is identical on both clusters — only the funding source changes (real Solana USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` on mainnet vs. devnet mock USDC faucet).
+</Note>
+
+<Note>
+  New to wallets? Start with [wallet setup](/getting-started/wallet-setup) first. New to perpetual swaps? Read [introduction](/introduction).
+</Note>
+
+<Steps>
+  <Step title="Connect your wallet">
+    Open `https://parquet.exchange/trade` and click **Connect**. Pick the wallet you funded with USDC. The header should show your address truncated and your USDC balance.
+  </Step>
+
+  <Step title="Pick a market">
+    The sidebar lists every active market. For your first trade, choose **AAPL** (Apple) or **SPY** (S&P 500 ETF) — both are typically the most liquid markets during US RTH. The chart and the trade panel switch to the selected symbol. Fills happen at the oracle/mark price against the USDC liquidity pool — there is no bid/ask order book to match against. (If you place limit, stop, or take-profit orders, you will see those pending trigger orders listed separately.)
+  </Step>
+
+  <Step title="Configure the trade">
+    In the trade panel:
+
+    - Select **Long** (you profit if mark price rises) or **Short** (you profit if it falls).
+    - Drag the leverage slider. The maximum is **tiered** by position size — up to **200×** for the smallest (wallet-market notional ≤ $5K), falling to 10× for the largest (> $1M), and the **same in every session** (set by the 50 bps initial margin). Start low — 2× or 3× — while you are learning. At 200× a brand-new position sits essentially at its liquidation point once the open fee is taken — the smallest move against you can wipe it out almost immediately.
+    - Enter collateral in USDC. The protocol minimum is **$10** per position; the trade panel blocks smaller amounts.
+    - Set slippage tolerance (in basis points). The default is sized for normal market volatility.
+
+    The trade panel shows your notional size, estimated entry price, and estimated liquidation price as you adjust.
+  </Step>
+
+  <Step title="Review the fee">
+    Hover the fee row. The opening fee is **0.1%** of notional. If your trade *reduces* the market's open-interest imbalance (for example: longs are dominant and you are opening a short — or vice versa), the rate drops to **0.05%**. The tooltip tells you which rate you will pay.
+  </Step>
+
+  <Step title="Open the position">
+    Click **Open**. Your wallet pops up to sign the transaction. Once it confirms, the trade panel clears and a toast confirms the fill.
+
+    <Tip>
+      If the signature fails with a slippage error, the mark price moved beyond your tolerance. Raise slippage or wait for calmer pricing. A "price stale" error is rare — the price feed runs around the clock — so if you see one, treat it as a momentary pricing hiccup and retry in a few seconds.
+    </Tip>
+  </Step>
+
+  <Step title="Watch your position">
+    Switch to the **Positions** tab. Your new row shows entry price, current mark, unrealized PnL, ROI, and **liquidation price**. The liq price is the level at which your equity hits the maintenance-margin threshold of 40 bps (venue-wide). See [liquidations](/trade/liquidations) for the math, and [margin management](/trade/margin-management) if you want to add or remove collateral to move that line.
+
+    Positions stay open across nights, weekends, and holidays — and the venue stays open too. You can close a position or adjust its margin at any time — and, as on any leveraged venue, a position can be liquidated at any time (including nights and weekends) if its equity falls below the maintenance-margin level. Outside RTH the off-hours risk-parameter column applies (the same leverage tiers, a $500K vs $5M OI cap per market, and an armed ADL tail-backstop). Funding and borrow fees accrue continuously.
+  </Step>
+
+  <Step title="Close out">
+    Click **Close** in the position row to open the position-detail panel. Confirm full close (or partial, by entering a smaller size) and sign. Your realized profit normally settles to your wallet in the same transaction. If the pool's reserves are temporarily drawn down, your payout is queued and paid in turn (see the next paragraph) — you are still paid in full.
+
+    If a profit close cannot settle in-line — because vault reserves are temporarily drawn down — the close still goes through and your payout is enqueued. The Positions tab shows a **Queued** row and a ticket number. See [payout queue](/trade/payout-queue) for how the FIFO queue drains.
+  </Step>
+</Steps>
+
+Once you have closed a position cleanly, try a short, try partial closes, and try adjusting margin mid-trade. Read [risks](/reference/risks) before scaling up.

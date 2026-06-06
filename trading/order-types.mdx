@@ -1,0 +1,52 @@
+---
+title: Order types
+description: Market orders, limit orders, stop-loss, and take-profit — how each order type works and executes.
+---
+
+## Pricing on Parquet
+
+All orders execute at the on-chain oracle price rather than against an order book or AMM curve. Prices are sourced from external market-data feeds, aggregated off-chain, and posted on-chain about once per second. Each update is checked for staleness and confidence before any order can execute against it.
+
+To avoid noise, tiny price moves are not written on-chain individually; the on-chain price refreshes whenever the market moves enough to matter.
+
+Parquet trades 24/7. RTH (Mon–Fri 09:30–16:00 ET, US holiday-aware) selects the pricing source set and risk-parameter column; outside RTH the on-chain feed continues to update from an off-exchange reference and orders still execute around the clock, but under more conservative off-hours limits — the same leverage tiers, a smaller per-market position-size cap ($500K off-hours versus $5M during RTH), and an armed ADL tail-backstop — because off-hours pricing comes from an off-exchange reference rather than the live US equity venues.
+
+## Market orders
+
+Market orders execute immediately at the current oracle price. You submit a transaction and the position is opened or closed in the same slot.
+
+Set an **acceptable price** to bound the maximum slippage between when you submit the order and when it executes. If the oracle price has moved beyond your acceptable price by the time the transaction processes, the order is rejected.
+
+## Limit orders
+
+Limit orders let you specify a trigger price at which you want to enter or exit a position. The order is created as an on-chain account and monitored by a keeper.
+
+**Order lifecycle:**
+
+1. You create a limit order with a trigger price and collateral (for increase orders).
+2. The order is stored on-chain.
+3. A keeper monitors the oracle price and executes the order when the trigger condition is met.
+4. The position is opened or modified at the oracle price at execution time.
+
+For increase orders, collateral is reserved when the order is created and returned if you cancel.
+
+## Stop-loss and take-profit
+
+Stop-loss and take-profit are decrease-only orders attached to existing positions. They use the same keeper execution mechanism as limit orders.
+
+- **Stop-loss:** Closes your position to limit losses when the price moves against you.
+- **Take-profit:** Closes your position to lock in gains when the price reaches your target.
+
+## Order types summary
+
+| Type | Direction | Trigger | Execution |
+|------|-----------|---------|-----------|
+| Market (open) | Increase | Immediate | Oracle price at submission |
+| Market (close) | Decrease | Immediate | Oracle price at submission |
+| Limit (open) | Increase | Oracle crosses trigger price | Keeper executes at oracle price |
+| Stop-loss | Decrease | Oracle crosses trigger price | Keeper executes at oracle price |
+| Take-profit | Decrease | Oracle crosses trigger price | Keeper executes at oracle price |
+
+## Cancelling orders
+
+You can cancel any open limit, stop-loss, or take-profit order before it is executed. Collateral reserved for increase orders is returned to your wallet on cancellation.
