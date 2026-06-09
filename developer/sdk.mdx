@@ -33,22 +33,12 @@ Parquet trades 24/7. Every state-changing instruction reads the oracle via `orac
 
 ## Install and provider setup
 
-The SDK is named `@parquet/sdk` in `package.json` but is not yet published to the npm registry; for now, build it from the SDK source (`sdk/`).
+Install from npm:
 
 ```bash
-# from the SDK source directory
-cd sdk
-npm install
-npm run build
+npm install @parqxchange/sdk
+# or: yarn add @parqxchange/sdk / pnpm add @parqxchange/sdk
 ```
-
-If you depend on the SDK from another project, reference your locally built `dist/` and let your bundler pick it up.
-
-<Note>
-  An npm publish under `@parquet/sdk` is pending. Once published, the install
-  command will reduce to `npm install @parquet/sdk` and the import paths in
-  the examples below will be unchanged.
-</Note>
 
 Each client takes an Anchor `Program` in its constructor, so you set up a provider once and instantiate clients per program.
 
@@ -63,13 +53,13 @@ import {
   FeeDistributorClient,
   StakingClient,
   IndexerClient,
-} from "@parquet/sdk";
-import poolIdl from "@parquet/sdk/idl/pool_program.json";
-import perpIdl from "@parquet/sdk/idl/perp_engine.json";
-import oracleIdl from "@parquet/sdk/idl/oracle_adapter.json";
-import priceFeedIdl from "@parquet/sdk/idl/price_feed.json";
-import feeIdl from "@parquet/sdk/idl/fee_distributor.json";
-import stakingIdl from "@parquet/sdk/idl/staking.json";
+} from "@parqxchange/sdk";
+import poolIdl from "@parqxchange/sdk/idl/pool_program.json";
+import perpIdl from "@parqxchange/sdk/idl/perp_engine.json";
+import oracleIdl from "@parqxchange/sdk/idl/oracle_adapter.json";
+import priceFeedIdl from "@parqxchange/sdk/idl/price_feed.json";
+import feeIdl from "@parqxchange/sdk/idl/fee_distributor.json";
+import stakingIdl from "@parqxchange/sdk/idl/staking.json";
 
 const connection = new Connection(process.env.RPC_URL!, "confirmed");
 const wallet = new Wallet(Keypair.fromSecretKey(/* ... */));
@@ -83,10 +73,39 @@ const fees = new FeeDistributorClient(new Program(feeIdl, provider));
 const staking = new StakingClient(new Program(stakingIdl, provider));
 
 // HTTP reads (prices, positions, OHLCV, queue state) — no Anchor Program needed
+// Optional second arg: timeout ms (default 15_000). Uses AbortSignal.timeout (Node 18+).
 const indexer = new IndexerClient("https://api.parquet.exchange");
 ```
 
-Program IDs live in [/network/contracts](/network/contracts). The IDLs ship inside the SDK build output; load them from `@parquet/sdk/idl/*` or from `target/idl/` if you are working against a local build.
+Program IDs live in [/network/contracts](/network/contracts). The program IDLs ship inside the package; import them from `@parqxchange/sdk/idl/*`.
+
+## Package entry points (`exports`)
+
+The published package exposes three entry paths (Node 18+; bundlers must honor `package.json` `"exports"`):
+
+| Path | Import | Use when |
+|------|--------|----------|
+| Full barrel | `@parqxchange/sdk` | All program clients, account decoders, events, indexer, trading-key ix builders. |
+| Minimal | `@parqxchange/sdk/minimal` | `PerpClient`, `openPosition` / `closePosition` / `updateMargin`, `getMarketOracleFeeds` — smaller module graph (no full decode barrel). |
+| Node | `@parqxchange/sdk/node` | `loadTradingKeypair` only — **never** import from browser apps (filesystem). |
+
+**Migration:** `loadTradingKeypair` moved off the default barrel — use `import { loadTradingKeypair } from "@parqxchange/sdk/node"`.
+
+**Sharp corners:** Before production, read the integrator matrix below.
+
+## Sharp corners (integrator checklist)
+
+| F-id | What goes wrong | What to do |
+|------|-----------------|------------|
+| **F-3** | Trading-key register/revoke hits `.rpc()` when you expected unsigned prep. | Use `buildRegisterTradingKeyIx` / `buildRevokeTradingKeyIx` + your send path. |
+| **F-4** | `loadTradingKeypair` drags `fs` into a web bundle. | `@parqxchange/sdk/node` only; never from the client bundle. |
+| **F-5** | Missing or wrong oracle feed PDAs on open/close. | Use `resolveOpenPositionAccounts` / `resolveClosePositionAccounts` + `getMarketOracleFeeds` (dual-feed). See [OracleClient](#oracleclient) below. |
+| **F-11** | `node:crypto` not resolved in the browser. | Decode on the server, or configure the bundler for `node:` imports. |
+| **F-13** | Oracle feed cache keyed by RPC URL collides across clusters. | `clearMarketOracleFeedsCache()` on cluster switch; see minimal entry if you only need feeds + perp. |
+| **F-19** | Marginal-length `MarketOracle` account. | SDK requires **158** bytes before tail fields; shorter data is rejected. |
+| **F-20** | Winning close without queue PDAs on enqueue path. | Always pass `queueEntryPda` and `userClaimsPda` (see warning under [PerpClient](#perpclient)). |
+| **F-21** | Untrusted program logs → `decodeAnchorEvent`. | Treat as untrusted: returns **`null`** if base64 is bad, payload too short, or inner decode fails — never assume non-null means “fully trusted.” |
+| **F-25** | `acceptablePrice` / `minOutputUsdc` = `0n`. | No slippage guard — set explicit limits in prod. |
 
 ## PoolClient
 
@@ -222,7 +241,7 @@ await provider.sendAndConfirm(tx);
 | `registerMarketOracleIx` | `market`, feed config | `TransactionInstruction` | Authority-only — binds a market's `MarketOracle` to its primary/secondary feeds |
 | `updateMarketOracleFeedsIx` | `market`, feed patch | `TransactionInstruction` | Authority-only — repoints the primary/secondary feeds (e.g. flips primary to a Pyth `PriceUpdateV2`) |
 
-Price reads themselves happen via CPI from the perp engine and pool program at instruction time, not via SDK calls. If you need to inspect a current price off-chain, do **not** hand-decode byte offsets — use the SDK's dual-feed read path: `getMarketOracleFeeds(connection, marketId, oracleProgramId)` resolves the market's primary + secondary feed accounts, and `decodePythPriceUpdate(...)` / `decodeSwitchboardPriceFeed(...)` (all exported from `@parquet/sdk`) decode each account into a `{ price, confidence, timestamp }` triple matching the on-chain `validate_and_read_price` output. Prices come back 1e9-scaled — pass them through `utils/priceMath` (`formatPrice`) for display. These off-chain reads never participate in settlement.
+Price reads themselves happen via CPI from the perp engine and pool program at instruction time, not via SDK calls. If you need to inspect a current price off-chain, do **not** hand-decode byte offsets — use the SDK's dual-feed read path: `getMarketOracleFeeds(connection, marketId, oracleProgramId)` resolves the market's primary + secondary feed accounts, and `decodePythPriceUpdate(...)` / `decodeSwitchboardPriceFeed(...)` (all exported from `@parqxchange/sdk`) decode each account into a `{ price, confidence, timestamp }` triple matching the on-chain `validate_and_read_price` output. Prices come back 1e9-scaled — pass them through `utils/priceMath` (`formatPrice`) for display. These off-chain reads never participate in settlement.
 
 ## FeeDistributorClient
 
@@ -282,15 +301,19 @@ try {
 
 Common codes you will see during normal SDK use:
 
+All codes below are the **real on-chain `errorCode.number`** (Anchor 0.31 = Rust discriminant + 6000) — exactly what `err.error.errorCode.number` carries and what the SDK's `ParquetError` enum / `decodeError` match against.
+
 | Code | Name | Origin | Cause |
 |------|------|--------|-------|
-| 1001 | `PriceStale` | perp_engine | The perp engine's own staleness guard tripped after reading the oracle (distinct from the oracle-adapter `6000` below — same name, different program + code) |
-| 2005 | `OiCapExceeded` | perp_engine | Open interest cap for the side would be breached by this open/increase ($5M per market RTH; $500K per market off-hours) |
-| 2006 | `BelowMinCollateral` | perp_engine | Position margin would fall below the $10 minimum after the operation |
-| 3007 | `FeeSettingsWrongOwner` | fee_distributor | `FeeSettings` PDA passed to the instruction is owned by a different program than expected |
+| 7001 | `PriceStale` | perp_engine | The perp engine's own staleness guard tripped after reading the oracle (distinct from the oracle-adapter `6000` below — same name, different program + code) |
+| 8005 | `OiCapExceeded` | perp_engine | Open interest cap for the side would be breached by this open/increase ($5M per market RTH; $500K per market off-hours) |
+| 8006 | `BelowMinCollateral` | perp_engine | Position margin would fall below the $10 minimum after the operation |
+| 6008 | `WrongAccountOwner` | fee_distributor | An account passed to the instruction is owned by a different program than expected |
 | 6000 | `PriceStale` | oracle_adapter | Oracle price is older than the staleness threshold — pricing temporarily unavailable (transient WS dropout, relayer restart, or upstream feed gap) |
+| 10005 | `ProtocolHalted` | perp_engine | Venue-wide halt (`HaltMode`) — opens and risk-increasing paths revert; decode via SDK `ParquetError.ProtocolHalted` / `decodeError` |
+| 10006 | `InvalidHaltMode` | perp_engine | Admin set an invalid halt byte — `ParquetError.InvalidHaltMode` |
 
-`2005` and `2006` are user-actionable — surface them as "market full" and "increase margin" respectively. Price-staleness shows up as **two distinct codes**: `1001` `PriceStale` from **perp_engine** (its own post-read guard) and `6000` `PriceStale` from **oracle_adapter** (the feed itself aged out) — same name, different programs, so match on both. Pre-2026-05-20 (RTH-only era) staleness was the canonical RTH-halt signal; post-24/7-unlock either should be surfaced as "pricing temporarily unavailable — try again in a few seconds" (transient WS dropouts or relayer restarts), and any extended occurrence is an incident, not a normal market state. `3007` is a wiring bug; if you see it in production it almost always means the client was pointed at the wrong program ID or a stale PDA cache. Cross-check the program IDs listed in [/network/contracts](/network/contracts).
+`8005` and `8006` are user-actionable — surface them as "market full" and "increase margin" respectively. Price-staleness shows up as **two distinct codes**: `7001` `PriceStale` from **perp_engine** (its own post-read guard) and `6000` `PriceStale` from **oracle_adapter** (the feed itself aged out) — same name, different programs, so match on both. Pre-2026-05-20 (RTH-only era) staleness was the canonical RTH-halt signal; post-24/7-unlock either should be surfaced as "pricing temporarily unavailable — try again in a few seconds" (transient WS dropouts or relayer restarts), and any extended occurrence is an incident, not a normal market state. `6008` is a wiring bug; if you see it in production it almost always means the client was pointed at the wrong program ID or a stale PDA cache. Cross-check the program IDs listed in [/network/contracts](/network/contracts).
 
 ## See also
 

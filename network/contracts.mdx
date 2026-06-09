@@ -11,7 +11,7 @@ Parquet runs on Solana mainnet: 15 active markets fed by an off-chain price-rela
 The six programs are deployed under deploy wallet `PARQVsPSbsn1Pm7kdayZpicVu2pBRLYEnqijLP2QC3z`. The same program IDs are used on localnet, devnet, and mainnet (the addresses below).
 
 <Note>
-  Explorer links below open on Solana mainnet — the explorer's default cluster — so they show the live deployment. The program IDs are the same on every cluster, so the same addresses also resolve on devnet; switch the explorer's cluster selector to `devnet` if you need the devnet view.
+  Explorer links below open on [Orb](https://orbmarkets.io) (Solana mainnet — Orb's default cluster) so they show the live deployment. The program IDs are the same on every cluster, so the same addresses also resolve on devnet; switch Orb's cluster selector to `devnet` if you need the devnet view.
 </Note>
 
 ## Programs
@@ -24,7 +24,7 @@ Owns per-market vaults, manages the v4 payout queue and `side_bucket`, accrues f
 Acme8JzWrvVqGJz7nTKVsLYisN6MtP83nrs4fVAeXJsN
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/Acme8JzWrvVqGJz7nTKVsLYisN6MtP83nrs4fVAeXJsN)
+[View on Orb](https://orbmarkets.io/address/Acme8JzWrvVqGJz7nTKVsLYisN6MtP83nrs4fVAeXJsN)
 
 ### perp_engine
 
@@ -34,7 +34,7 @@ Position lifecycle (open/close/liquidate), order management (limit/stop), margin
 6QrsMTMEu9rsLpyxQgRdvQsWoPgHGY9npNNiwTtXsbdc
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/6QrsMTMEu9rsLpyxQgRdvQsWoPgHGY9npNNiwTtXsbdc)
+[View on Orb](https://orbmarkets.io/address/6QrsMTMEu9rsLpyxQgRdvQsWoPgHGY9npNNiwTtXsbdc)
 
 ### oracle_adapter
 
@@ -44,7 +44,7 @@ Lightweight CPI surface for read-only price reads. Other programs CPI here rathe
 6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd)
+[View on Orb](https://orbmarkets.io/address/6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd)
 
 Builds are gated in CI to ensure the production price-validation path is compiled in.
 
@@ -56,7 +56,7 @@ Per-market `PriceFeed` PDA storage, written by the off-chain price-relay service
 Dgorf5LPiMttdTxWcrsiA2j94kWKw55gJLRJm8P4E1Hn
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/Dgorf5LPiMttdTxWcrsiA2j94kWKw55gJLRJm8P4E1Hn)
+[View on Orb](https://orbmarkets.io/address/Dgorf5LPiMttdTxWcrsiA2j94kWKw55gJLRJm8P4E1Hn)
 
 ### fee_distributor
 
@@ -66,7 +66,7 @@ Two-stage fee routing: sweep non-LP fees from pool, distribute via configurable 
 CHTpVtZQboxjM6N9xk1RR29jZyWqFNV77cmQNJ18RNNL
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/CHTpVtZQboxjM6N9xk1RR29jZyWqFNV77cmQNJ18RNNL)
+[View on Orb](https://orbmarkets.io/address/CHTpVtZQboxjM6N9xk1RR29jZyWqFNV77cmQNJ18RNNL)
 
 ### staking
 
@@ -76,7 +76,7 @@ Multi-pool staking. Two pool types via `reward_source` enum (`BalanceBased` / `E
 35HddZHf84u6DeyLoZL3Z3a8pZ59594xu1aizj7VrAGR
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/35HddZHf84u6DeyLoZL3Z3a8pZ59594xu1aizj7VrAGR)
+[View on Orb](https://orbmarkets.io/address/35HddZHf84u6DeyLoZL3Z3a8pZ59594xu1aizj7VrAGR)
 
 ### mock_usdc (devnet only)
 
@@ -86,7 +86,7 @@ Devnet collateral mint. The deploy wallet is the mint authority. **Mainnet uses 
 DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA?cluster=devnet)
+[View on Orb](https://orbmarkets.io/address/DA8DJqnj49QrNN6TSbZ13cMubdJ8agSeEohH5AGjkgYA?cluster=devnet)
 
 ## Protocol token (PARQ)
 
@@ -96,7 +96,7 @@ The Parquet protocol token — a **Token-2022** mint (token program `TokenzQdBNb
 VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 ```
 
-[View on Solana Explorer](https://explorer.solana.com/address/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq)
+[View on Orb](https://orbmarkets.io/address/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq)
 
 ## Markets
 
