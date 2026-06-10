@@ -60,7 +60,7 @@ See: [Liquidations](/trade/liquidations)
 
 ### Liquidation
 
-The forced closing of a position whose effective equity has dropped below the maintenance margin ratio (MMR) times its size. Liquidation is open to anyone — Parquet runs a keeper that does it automatically, but any party can trigger it. The liquidator earns a fixed fee (50 bps) out of what's left of the collateral; the remainder goes back to the LP pool.
+The forced closing of a position whose effective equity has dropped below the maintenance margin ratio (MMR) times its size. Liquidation is open to anyone — Parquet runs a keeper that does it automatically, but any party can trigger it. A liquidation fee of 20% of the remaining equity is taken (capped at equity, split 50/50 between the liquidator and the insurance fund); whatever equity is left is returned to the trader.
 
 See: [Liquidations](/trade/liquidations)
 

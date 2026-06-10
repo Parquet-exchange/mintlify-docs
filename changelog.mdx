@@ -5,6 +5,16 @@ description: Public-relevant changes to the Parquet protocol and docs, newest fi
 
 A summary of public-relevant changes to Parquet. This list is sanitized for traders and integrators — it omits internal infrastructure and operational detail. For the full risk picture, always read the [risk disclosure](/reference/risks); for the current numbers, see [Fees & Costs](/trading/fees).
 
+## 2026-06-11
+
+- **SPCX pre-IPO synthetic listed.** A 32nd market, SPCX, is now live — a SpaceX pre-IPO synthetic priced 24/7 from a third-party Hyperliquid feed. It is not SpaceX stock and has no Pyth feed. See [Markets](/markets) and the [risk disclosure](/reference/risks).
+- **LP farm live.** The liquidity-provider farm is live on mainnet. See [Liquidity](/liquidity/overview).
+
+## 2026-06-09
+
+- **Market lineup expanded to 31 equity perps.** Sixteen markets were added (MSFT, META, PLTR reactivated plus ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL), all relayed 24/7. GLD, SMCI, and USO remain recognized on-chain but inactive. See [Markets](/markets).
+- **Liquidation fee moved to equity-based.** The liquidation fee is now **20% of remaining equity at liquidation**, capped at equity and split 50/50 between the liquidator and the insurance fund. It replaces the prior fixed notional fee. Because it scales with remaining equity, it cannot by itself create bad debt. See [Liquidations](/trade/liquidations).
+
 ## 2026-06-05
 
 - **24/7 high-leverage unlock.** Off-hours leverage now matches regular hours — the same tier table applies in every session, **up to 200×** on the smallest position tier (set by the 50 bps initial margin). Off-hours keeps its tighter $500K open-interest cap and off-exchange reference pricing. See [Markets](/markets) and [Trading overview](/trading/overview).

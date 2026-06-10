@@ -12,7 +12,7 @@ This page is the **canonical source of truth** for Parquet's fee and risk parame
 | Open / close fee — base | **0.1%** of notional |
 | Open / close fee — favorable (reduces OI imbalance) | **0.05%** of notional |
 | Funding rate cap | **10 bps/hour** |
-| Liquidation fee | **50 bps** of remaining collateral |
+| Liquidation fee | **20% of remaining equity** at liquidation (capped at equity, split 50/50 liquidator / insurance fund) |
 | Initial margin | **50 bps** (0.5%) of notional → **200×** max openable, venue-wide |
 | Maintenance margin ratio (MMR) | **40 bps** (0.4%) venue-wide |
 | Open-interest cap per market | **$5M** during RTH / **$500K** off-hours |

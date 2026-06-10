@@ -1,6 +1,6 @@
 ---
 title: Liquidations
-description: How and why positions get liquidated on Parquet — the maintenance-margin trigger, the 50 bps liquidator reward, and what happens off-hours.
+description: How and why positions get liquidated on Parquet — the maintenance-margin trigger, the equity-based liquidation fee, and what happens off-hours.
 audience: trader
 ---
 
@@ -27,7 +27,7 @@ Three numbers to remember:
 |---|---|
 | `MMR_BPS` | **40 bps** (0.4% of position size, venue-wide) |
 | `MAX_LEVERAGE` | **Tiered** — up to 200× (≤ $5K notional) down to 10× (> $1M), same tiers in every session (set by the 50 bps initial margin) |
-| Liquidator reward | **50 bps** of remaining collateral (capped per call) |
+| Liquidation fee | **20% of remaining equity** at liquidation, capped at equity, split 50/50 between liquidator and insurance fund |
 
 Liquidation math rounds conservatively (in the protocol's favor) to protect liquidity providers, so the actual trigger sits a hair earlier than a back-of-envelope calculation suggests. Keep a small buffer: watch your margin in the position panel and top up collateral early. See [Margin management](/trade/margin-management) for how to add or remove collateral mid-trade.
 
@@ -39,12 +39,12 @@ The initial margin is **50 bps** (0.5%), so the most you can *open* is 200×. A 
 **Off-hours price drift.** Parquet trades 24/7, so you can be liquidated overnight or over a weekend. Off-hours pricing comes from an off-exchange reference feed rather than the underlying US equity venues, so the price your position is marked against can drift from where the underlying would actually trade at next-open. Off-hours risk parameters are tighter (the OI cap drops from $5M to $500K and an ADL tail-backstop is armed; the leverage tiers themselves are the same in every session) but the drift risk is real. Size off-hours exposure assuming the off-hours mark may not perfectly track the underlying.
 </Warning>
 
-## What the liquidator earns
+## What the liquidation fee is
 
 When you are liquidated, two payouts happen in one step:
 
-1. **Trader settlement.** Any remaining equity — collateral plus realized PnL minus funding and borrow fees — is paid back to the trader's vault.
-2. **Liquidator reward.** A bounty equal to **50 bps** of the remaining collateral is paid to whoever triggered the liquidation, up to a cap that limits how much of your remaining equity can be spent on the reward and settlement.
+1. **Liquidation fee.** A fee equal to **20% of your remaining equity at liquidation** is taken. It is capped at your equity (it can never exceed what's left) and split 50/50 — half to whoever triggered the liquidation, half to the insurance fund. Because the fee scales with what remains, it shrinks as your equity shrinks, so it cannot by itself push the position into bad debt.
+2. **Trader settlement.** Whatever equity is left after the fee — collateral plus realized PnL minus funding and borrow fees — is paid back to the trader's vault.
 
 <Note>
 You don't pay the liquidator out of pocket — it comes out of your remaining equity.

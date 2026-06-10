@@ -8,7 +8,7 @@ Quick answers to the questions traders ask most. Each answer links out to the pa
 
 ### What is Parquet?
 
-Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure to US equities and ETFs. The protocol lists 15 active markets — 13 large-cap stocks (AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, MU, SNDK, INTC, AMD) and 2 broad-market ETFs (SPY, QQQ). A few more symbols (MSFT, META, PLTR, GLD, SMCI, USO) are recognized on-chain but inactive — see [`/markets`](/markets) for the full list.
+Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure to US equities and ETFs. The protocol lists 32 active markets — 31 US equity perps (29 single-name stocks plus the SPY and QQQ ETFs) and the SPCX pre-IPO synthetic (a SpaceX synthetic priced from a third-party Hyperliquid feed; not SpaceX stock). A few more symbols (GLD, SMCI, USO) are recognized on-chain but inactive — see [`/markets`](/markets) for the full list.
 
 ### When can I trade?
 
@@ -24,7 +24,7 @@ Parquet is oracle-priced and pool-backed, so price integrity is defended in laye
 
 ### Is this on mainnet?
 
-Yes. Parquet trades on Solana mainnet — 15 active markets trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
+Yes. Parquet trades on Solana mainnet — 32 active markets trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
 
 ### What wallets are supported?
 
@@ -36,7 +36,7 @@ Phantom and Solflare via the Solana wallet adapter. Anything that speaks the ada
 
 ### What fees do I pay?
 
-Base open/close fee is **0.1%** of notional, reduced to **0.05%** when your trade reduces open-interest imbalance. Funding is capped at **10 bps/hour**. Liquidations pay a 50-bps reward to the keeper from your remaining collateral. See [`/trading/fees`](/trading/fees) for the full breakdown.
+Base open/close fee is **0.1%** of notional, reduced to **0.05%** when your trade reduces open-interest imbalance. Funding is capped at **10 bps/hour**. Liquidations take a fee of **20% of your remaining equity** at liquidation, capped at equity and split 50/50 between the liquidator and the insurance fund. See [`/trading/fees`](/trading/fees) for the full breakdown.
 
 ### What's the open-interest cap?
 
@@ -48,7 +48,7 @@ When the pool is short on free liquidity, winning closes go into a FIFO payout q
 
 ### What happens if I get liquidated?
 
-Once your health drops to or below the maintenance margin (0.4% venue-wide), anyone can trigger a liquidation. You receive net PnL minus fees; the liquidator earns a 50-bps bounty out of your remaining collateral, capped per call. See [`/trade/liquidations`](/trade/liquidations).
+Once your health drops to or below the maintenance margin (0.4% venue-wide), anyone can trigger a liquidation. A fee of 20% of your remaining equity at liquidation is taken (capped at equity, split 50/50 between the liquidator and the insurance fund), and whatever equity is left is paid back to you. See [`/trade/liquidations`](/trade/liquidations).
 
 ### Can I add or remove margin on an open position?
 

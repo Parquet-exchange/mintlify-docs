@@ -6,7 +6,7 @@ audience: developer
 
 ## Deployment
 
-Parquet runs on Solana mainnet: 15 active markets fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH markets; the relayer-written `PriceFeed` PDA off-hours and for the relayed-24/7 markets), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
+Parquet runs on Solana mainnet: 32 active markets (31 equity perps plus the SPCX pre-IPO synthetic) fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH markets; the relayer-written `PriceFeed` PDA off-hours and for the relayed-24/7 markets; SPCX is priced solely from a third-party Hyperliquid feed), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
 
 The six programs are deployed under deploy wallet `PARQVsPSbsn1Pm7kdayZpicVu2pBRLYEnqijLP2QC3z`. The same program IDs are used on localnet, devnet, and mainnet (the addresses below).
 
@@ -103,11 +103,12 @@ VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 `pool_program` holds per-symbol `MarketState` PDAs (initialized on both devnet and mainnet). **15 are active**, split by feed class under feed-v2 (2026-05-31):
 
 - **Free-RTH (11)** — AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, SPY, QQQ — read Pyth's `PriceUpdateV2` as primary during RTH and the relayer-written `PriceFeed` PDA off-hours.
-- **Relayed-24/7 (4)** — MU, SNDK, INTC, AMD — read the `PriceFeed` PDA in every session.
+- **Relayed-24/7 (20)** — MU, SNDK, INTC, AMD, MSFT, META, PLTR, ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL — read the `PriceFeed` PDA in every session.
+- **Hyperliquid-sole-source (1)** — SPCX — a SpaceX pre-IPO synthetic with no Pyth feed; the `PriceFeed` PDA is written from a third-party Hyperliquid feed in every session. Not SpaceX stock.
 
-The remaining symbols — MSFT, META, PLTR, GLD (dropped 2026-05-31), SMCI (dropped 2026-05-16), and USO (dropped 2026-05-24) — keep their `MarketState` PDAs initialized but have no live feed, so their oracles stay stale and opens revert.
+The remaining symbols — GLD (dropped 2026-05-31), SMCI (dropped 2026-05-16), and USO (dropped 2026-05-24) — keep their `MarketState` PDAs initialized but have no live feed, so their oracles stay stale and opens revert.
 
-All markets share a single wallet-notional-tiered leverage table applied in **every session** — **up to 200× on the smallest tier (≤$5K)**, scaling down by wallet-notional tier (≤$50K / ≤$250K / ≤$1M / >$1M, to 10× for >$1M). The 200× openable max follows from the **50 bps initial margin** (a fresh max-tier open has ~0 economic cushion after the open fee). Maintenance margin is **40 bps** venue-wide, liquidation fee = 50 bps, funding cap = 10 bps/hour. OI cap = $5M per market during RTH and $500K off-hours (the one risk parameter that still tightens off-hours, alongside off-exchange reference pricing). An **ADL tail-backstop** (Tier-B queue-IOU socialization) is armed off-hours on all markets as a last-resort bound on the payout-queue tail — see [Payout queue](/trade/payout-queue) and [Risks](/reference/risks). Bad-data rejection happens in the off-chain aggregator. See [Markets](/markets) for the symbol list.
+All markets share a single wallet-notional-tiered leverage table applied in **every session** — **up to 200× on the smallest tier (≤$5K)**, scaling down by wallet-notional tier (≤$50K / ≤$250K / ≤$1M / >$1M, to 10× for >$1M). The 200× openable max follows from the **50 bps initial margin** (a fresh max-tier open has ~0 economic cushion after the open fee). Maintenance margin is **40 bps** venue-wide, liquidation fee = 20% of remaining equity at liquidation, funding cap = 10 bps/hour. OI cap = $5M per market during RTH and $500K off-hours (the one risk parameter that still tightens off-hours, alongside off-exchange reference pricing). An **ADL tail-backstop** (Tier-B queue-IOU socialization) is armed off-hours on all markets as a last-resort bound on the payout-queue tail — see [Payout queue](/trade/payout-queue) and [Risks](/reference/risks). Bad-data rejection happens in the off-chain aggregator. See [Markets](/markets) for the symbol list.
 
 ## Fee distribution split
 

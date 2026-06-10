@@ -1,0 +1,75 @@
+---
+title: Price integrity
+description: How Parquet keeps its oracle price honest — multi-source validation, dual-feed fallback, staleness and confidence checks, and the limits that bound a bad price during volatile events.
+audience: trader
+---
+
+Parquet is **oracle-priced and pool-backed** — there is no order book. Every position opens, closes, and liquidates at the oracle mark against a per-market USDC pool. That makes the integrity of the price the single most important safety property on the venue, so it is defended in layers: bad or stale data is filtered **off-chain before it is ever posted**, and then checked **again on-chain before any trade can execute against it**.
+
+This page explains how Parquet resists the three things that threaten an oracle-priced perp — **manipulation, stale feeds, and latency arbitrage** — and, just as importantly, what it deliberately does *not* do. For the high-level price pipeline, see [How pricing works](/markets#how-pricing-works); for the risks that remain, see [Risks](/reference/risks).
+
+## The two-stage price path
+
+<Steps>
+  <Step title="Off-chain validation (before the chain)">
+    Candidate prices are validated by an off-chain aggregator. Cross-source checks, outlier rejection, and sanity bounds reject bad data **before** it is signed into a transaction. A price has to survive this stage to reach the chain at all.
+  </Step>
+  <Step title="On-chain validation (before execution)">
+    Every read the trading program performs is independently checked for **freshness (staleness)** and **confidence** before a trade can use it. If the check fails, the instruction reverts — the trade simply does not happen.
+  </Step>
+</Steps>
+
+The pricing source changes by session — the live US equity market during regular trading hours (RTH), an off-exchange reference feed off-hours — but both stages above apply in every session.
+
+## Resisting oracle manipulation
+
+<Note>
+In a pool-backed venue, manipulating the price is fundamentally an attack on the **liquidity pool**, not on another trader. The defenses below are what bound that attack surface.
+</Note>
+
+- **The regular-hours on-chain mark is a decentralized aggregate, not a feed we run.** During RTH the primary on-chain price is sourced from **Pyth Network**, which aggregates many independent publishers. Moving it means moving that aggregate — not spoofing a single venue or a single relay we control.
+- **The off-chain feed is built from multiple independent providers.** The aggregator combines several independent, licensed market-data feeds using a median with outlier rejection, plus an **agreement gate** that rejects the frame if the providers disagree by more than a tolerance, and a **trusted-source guard** so a lone unrecognized feed cannot set the price on its own. A single compromised or glitching source does not move the mark.
+- **Off-hours adds corroboration and shock confirmation.** The off-hours reference mark is cross-checked against an independent oracle leg, and a sudden single-tick jump must **persist across several consecutive ticks** before it is accepted as real. A transient flash spike is never written; a genuine gap (such as a Monday-morning open) still lands once it holds.
+- **Fail-closed by design.** If validation cannot agree on a trustworthy price, **no price is written.** The relevant feed ages out and the market freezes — opens, closes, and liquidations on it revert — rather than transacting against a suspect number. Freezing on a manipulated price is the intended outcome.
+
+## Stale price feeds
+
+- **Dual-feed with automatic fallback.** Each market has a primary feed and a secondary fallback. If the primary ages past its freshness window, reads fall through to the secondary automatically, so a single quiet feed does not halt trading.
+- **Every read is staleness- and confidence-checked.** Before any trade executes, the on-chain price must be recent enough *and* carry an acceptable confidence. A too-old or too-uncertain price is rejected.
+- **Future-dated prices are rejected.** A small tolerance absorbs normal clock skew, but a meaningfully future-dated timestamp cannot satisfy the freshness check.
+- **If both feeds are stale, the read reverts.** There is no "last known price" fallback into execution — fail-closed means no trading on stale data.
+- **The fallback is kept warm.** The secondary feed is refreshed far more frequently than its staleness window, so it is ready the instant the primary is needed.
+
+## Latency arbitrage
+
+Every oracle-priced perpetual has *some* latency-arbitrage surface — a trader who can see the underlying move before the on-chain price updates has an edge. Parquet does not claim to eliminate it; it shrinks it and bounds the damage:
+
+- **The regular-hours mark updates sub-second** from the live tape, so the window to race it is small.
+- **One price, no spread, no rebate.** There is a single oracle mark — no bid/ask to pick off and no maker rebate to farm.
+- **Round-trip cost.** A 0.1% open fee plus funding means a latency edge has to clear real costs to be net-profitable, which removes the thin-margin strategies.
+- **Hard size limits.** Per-market open-interest caps ($5M during RTH, $500K off-hours) bound how large any single play can be, and the [payout queue](/trade/payout-queue) and off-hours ADL tail-backstop bound the worst-case tail behind that.
+
+<Warning>
+**One thing Parquet deliberately does *not* do:** the on-chain price-deviation circuit breaker is intentionally **disabled**, so that large but legitimate moves — the Monday-morning open, an earnings gap — process cleanly instead of being rejected on-chain. Bad-data rejection happens off-chain in the aggregator instead. This is a conscious trade-off, not an oversight; it is disclosed in [Risks](/reference/risks).
+</Warning>
+
+## Volatile events: earnings and big moves
+
+There is no earnings-specific halt — the same layered defenses carry the load:
+
+- The live feed tracks the post-print move, so the on-chain mark follows the real market rather than lagging it.
+- The off-chain **agreement gate** rejects single-source garbage on the spike, and off-hours **shock confirmation** prevents a one-print wick from liquidating positions on a single bad tick.
+- A **10-minute weighted blend** at each session boundary smooths the 4:00 PM ET handoff, so after-hours earnings do not create a discontinuity at the close.
+
+For a genuine feed failure during an extreme event, there are break-glass operator levers:
+
+- A **single market can be deactivated** — its oracle goes stale, so new opens revert and no fills happen on a broken feed.
+- The **entire venue can be moved to reduce-only** (closes and liquidations continue; new opens are blocked) or fully paused, reversibly, in a single action until conditions normalize.
+
+## What this guarantees — and what it doesn't
+
+<Warning>
+Price validation **reduces** risk; it does not remove it. Feeds can still be wrong, delayed, or unavailable; the off-hours reference mark can diverge from where a stock would open at the next US session; and the on-chain deviation breaker is intentionally off. You can still be liquidated on an adverse move, including one driven by the off-hours reference feed while US venues are closed. Read [Risks](/reference/risks) in full before trading on mainnet.
+</Warning>
+
+Everything described here runs in open, on-chain programs and public services. The program IDs are published on [Contracts](/network/contracts), and security issues can be reported through the process on [Security](/reference/security).

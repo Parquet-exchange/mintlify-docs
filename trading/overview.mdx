@@ -52,6 +52,6 @@ A position is liquidated when its effective equity falls below the maintenance m
 
 Your position's health depends on your effective equity relative to its size. As your equity — after PnL, funding, and borrowing fees — shrinks toward the maintenance requirement, your liquidation risk rises.
 
-When your effective equity drops below the maintenance margin requirement, the position becomes eligible for liquidation. Liquidations are executed automatically by the protocol when these conditions are met. A liquidation fee of 50 bps is paid to the liquidator from the remaining collateral.
+When your effective equity drops below the maintenance margin requirement, the position becomes eligible for liquidation. Liquidations are executed automatically by the protocol when these conditions are met. A liquidation fee of 20% of your remaining equity at liquidation is taken — capped at equity and split 50/50 between the liquidator and the insurance fund.
 
 For details on the fees that affect effective equity, see [Fees & Costs](/trading/fees).

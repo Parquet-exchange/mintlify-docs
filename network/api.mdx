@@ -1,6 +1,6 @@
 ---
 title: Indexer API
-description: Parquet indexer REST and WebSocket reference — events, OHLCV, stats, fees, staking, leaderboard, payout queue, orderbook, market hours, /health, /ws.
+description: Parquet indexer REST and WebSocket reference — events, OHLCV, stats, fees, staking, leaderboard, points, payout queue, orderbook, market hours, /health, /ws.
 audience: developer
 ---
 
@@ -18,7 +18,7 @@ All timestamps in request params and response payloads are unix seconds unless e
 
 | Surface | Auth |
 |---|---|
-| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/orderbook`, `/queue/*`, `/market-hours`) | None |
+| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/points/*`, `/orderbook`, `/queue/*`, `/market-hours`) | None |
 | `/health` | None |
 | WebSocket `/ws` | None |
 
@@ -74,7 +74,7 @@ curl 'https://api.parquet.exchange/events?market=AAPL&event_type=PositionOpened&
 ```
 
 <Note>
-Valid markets are the 15 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `SPY`, `QQQ`. The inactive symbols (`MSFT`, `META`, `PLTR`, `GLD`, `SMCI`, `USO`) are recognized by the indexer for historical reasons but have no live oracle feed — opens against them revert at the price-staleness check.
+Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX pre-IPO synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are recognized by the indexer for historical reasons but have no live oracle feed — opens against them revert at the price-staleness check.
 </Note>
 
 <Note>
@@ -196,7 +196,11 @@ type StakingHistoryResponse = {
 
 ## GET /leaderboard
 
-Trader PnL aggregation. CTE-joined from `PositionOpened` (volume, size) and `PositionClosed` (PnL, trades, wins). 60-second cache.
+Trader PnL aggregation over `PositionOpened` + `PositionClosed` events (single-pass; a wallet appears with either opens or closes). 60-second cache.
+
+PnL is **net realized PnL** (`net_return − collateral`: price move minus fees, funding, borrowing, and price impact, bounded at −collateral) for closes after 2026-06-10; older closes report gross price-move PnL (the events predate the net fields). All close paths count — user closes, keeper TP/SL/limit fills, and liquidations (a liquidation books as a losing trade at −collateral). Volume sums both legs (open + close notional).
+
+**Optional `owner` mode (2026-06-10, #188 Task 1 — ships with the indexer deploy that includes `feat/stats-user-protocol`):** pass `owner=<base58 wallet pubkey>` to fetch **one wallet’s** stats with the **same** net-PnL/volume/trades/win-rate math as the board, plus **`rank`** (1-based among traders in the window for the requested `sort`, or `null` if the wallet has no activity) and **`totalRanked`**. Invalid pubkey → `400`. When `owner` is absent, the response is the ranked list (backward compatible).
 
 **Query params:**
 
@@ -204,21 +208,137 @@ Trader PnL aggregation. CTE-joined from `PositionOpened` (volume, size) and `Pos
 |---|---|---|---|
 | `timeframe` | string | `24h`, `7d`, `30d`, `all` | `7d` |
 | `sort` | string | `pnl`, `volume`, `trades`, `winRate` | `pnl` |
-| `limit` | number | ≤ 100 | 100 |
+| `dir` | string | `asc`, `desc` | `desc` |
+| `limit` | number | ≤ 100 (list mode only) | 100 |
+| `offset` | number | ≥ 0 (list mode only) | 0 |
+| `owner` | string | base58 Solana pubkey (optional) | — |
 
 ```typescript
-type LeaderboardResponse = {
+type LeaderboardTrader = {
+  rank: number;
+  wallet: string;
+  realizedPnl: number; // USDC, human units
+  volume: number;
+  trades: number;
+  winRate: number; // 0..1
+};
+
+type LeaderboardListResponse = {
+  traders: LeaderboardTrader[];
+  timeframe: string;
+  updatedAt: string;
+};
+
+// When ?owner= is set, the handler returns a single object (not `{ traders: [...] }`).
+type LeaderboardOwnerResponse = {
+  wallet: string;
   timeframe: string;
   sort: string;
-  rows: Array<{
-    trader: string;
-    pnl: string;
-    volume: string;
-    trades: number;
-    wins: number;
-    winRate: number;       // 0..1
+  realizedPnl: number;
+  volume: number;
+  trades: number;
+  winRate: number;
+  rank: number | null;
+  totalRanked: number;
+  updatedAt: string;
+};
+```
+
+## GET /points/leaderboard
+
+Points engagement-currency leaderboard. Points are an off-chain currency accrued by the indexer from on-chain events — they are tethered to real economic flow (volume, realized PnL, liquidation, staking, referrals) and carry no rewards attachment. 60-second cache per `(view, season, limit, offset)`.
+
+**Query params:**
+
+| Param | Type | Allowed | Default |
+|---|---|---|---|
+| `view` | string | `lifetime`, `season` | `lifetime` |
+| `season` | string | `YYYY-MM` (UTC calendar month) | current season |
+| `limit` | number | ≤ 100 | 100 |
+| `offset` | number | ≥ 0 | 0 |
+
+**Response:**
+
+```typescript
+type PointsLeaderboardResponse = {
+  updatedAt: number;                       // ms epoch the snapshot was built
+  view: "lifetime" | "season";
+  season: string | null;                   // "YYYY-MM" for season view, null for lifetime
+  entries: Array<{
+    rank: number;                          // 1-based, accounts for offset
+    wallet: string;
+    points: string;                        // decimal string
+    breakdown: {
+      volume: string;
+      win: string;
+      loss: string;
+      liquidation: string;
+      stake: string;
+      referral: string;
+    };                                     // per-category decimal strings
   }>;
 };
+```
+
+```bash
+curl 'https://api.parquet.exchange/points/leaderboard?view=season&season=2026-06&limit=50'
+```
+
+<Note>
+All point values (`points` and every `breakdown` field) are **decimal strings**, not numbers — they preserve full `NUMERIC(30,6)` precision and may exceed JS safe-integer range. `liquidation` points are credited to the **liquidated** trader (the margin they lost), not the liquidator.
+</Note>
+
+## GET /points/wallet/:wallet
+
+Per-wallet points view — lifetime + current-season totals, category breakdown, lifetime rank, and direct-referee count.
+
+**Response:**
+
+```typescript
+type PointsWalletResponse = {
+  wallet: string;
+  lifetimePoints: string;       // decimal string
+  seasonPoints: string;         // decimal string, current season
+  seasonId: string;             // "YYYY-MM" (UTC)
+  rank: number | null;          // lifetime rank; null if the wallet has no points
+  breakdown: {
+    volume: string;
+    win: string;
+    loss: string;
+    liquidation: string;
+    stake: string;
+    referral: string;
+  };                            // lifetime per-category decimal strings
+  referralCount: number;        // direct referees linked to this wallet
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/points/wallet/9Zip...'
+```
+
+## GET /points/config
+
+The active points configuration: the current weighting and season. `configVersion` increments whenever the weighting changes, so clients can detect a retune.
+
+```typescript
+type PointsConfigResponse = {
+  configVersion: number;
+  seasonId: string;             // current season, "YYYY-MM" (UTC)
+  weights: {
+    volume: number;             // points per $1 notional traded
+    win: number;                // points per $1 realized profit
+    loss: number;               // points per $1 realized loss
+    liquidation: number;        // points per $1 margin lost (to the liquidated trader)
+    stakePerParqDay: number;    // points per weighted-PARQ per day staked
+  };
+  referralPct: number;          // fraction of a direct referee's event-driven points
+  minNotionalUsdc: string;      // minimum notional (USDC base units) to accrue, decimal string
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/points/config'
 ```
 
 ## GET /orderbook?market=SYMBOL

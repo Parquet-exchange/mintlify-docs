@@ -1,11 +1,11 @@
 ---
 title: Markets
-description: All 15 active Parquet markets — single-name US equities and broad-market ETFs, trading 24/7.
+description: All 32 active Parquet markets — 31 US equity perps plus the SPCX pre-IPO synthetic, trading 24/7.
 ---
 
-Parquet trades live on Solana mainnet — all 15 markets below are tradeable now.
+Parquet trades live on Solana mainnet — all 32 markets below are tradeable now.
 
-Parquet lists 15 active markets — 13 single-name US equities plus 2 broad-market ETFs. Each market gives synthetic long or short exposure to a real-world US-listed stock or ETF price, settled in USDC against an isolated per-market liquidity pool. **Markets trade 24/7.** During regular US trading hours (9:30 AM–4:00 PM ET, Mon–Fri) prices track the live US equity market; outside those hours, prices come from an off-exchange reference feed. See [Trading hours](#trading-hours) and [Risks](/reference/risks).
+Parquet lists 32 active markets: 31 US equity perps (29 single-name equities plus 2 broad-market ETFs) and the SPCX pre-IPO synthetic. Each equity market gives synthetic long or short exposure to a real-world US-listed stock or ETF price, settled in USDC against an isolated per-market liquidity pool. **Markets trade 24/7.** During regular US trading hours (9:30 AM–4:00 PM ET, Mon–Fri) prices track the live US equity market; outside those hours, prices come from an off-exchange reference feed. See [Trading hours](#trading-hours) and [Risks](/reference/risks).
 
 ## Single-name equities
 
@@ -26,6 +26,22 @@ Large-cap and high-volume US equities.
 | SNDK  | SanDisk |
 | INTC  | Intel |
 | AMD   | Advanced Micro Devices |
+| MSFT  | Microsoft |
+| META  | Meta Platforms |
+| PLTR  | Palantir |
+| ORCL  | Oracle |
+| LLY   | Eli Lilly |
+| TSM   | Taiwan Semiconductor |
+| CRWV  | CoreWeave |
+| BABA  | Alibaba |
+| AVGO  | Broadcom |
+| NFLX  | Netflix |
+| MRVL  | Marvell Technology |
+| ASML  | ASML Holding |
+| COST  | Costco |
+| RIVN  | Rivian |
+| IBM   | International Business Machines |
+| DELL  | Dell Technologies |
 
 ## ETFs
 
@@ -36,15 +52,20 @@ Broad-market index ETFs.
 | SPY | SPDR S&P 500 ETF  | Broad US equity market (S&P 500) |
 | QQQ | Invesco QQQ Trust | Nasdaq-100 index |
 
+## Pre-IPO synthetic
+
+| Symbol | Name | Pricing |
+|--------|------|---------|
+| SPCX | SpaceX pre-IPO synthetic | Third-party Hyperliquid feed (`xyz:SPCX`), 24/7 |
+
+SPCX tracks a third-party Hyperliquid synthetic for SpaceX, priced 24/7. **It is not SpaceX stock**, confers no ownership or equity claim, and has no Pyth feed — it is the only market sourced solely from Hyperliquid. SpaceX is a private company; treat SPCX as a speculative synthetic and read the [risk disclosure](/reference/risks) before trading.
+
 ## Inactive markets
 
-A few symbols are listed for historical reasons but aren't currently enabled for trading — they have no live price feed, so you can't open positions on them. That's 15 active markets plus 6 inactive ones.
+A few symbols are listed for historical reasons but aren't currently enabled for trading — they have no live price feed, so you can't open positions on them. That's 32 active markets plus 3 inactive ones.
 
 | Symbol | Name |
 |--------|------|
-| MSFT | Microsoft |
-| META | Meta Platforms |
-| PLTR | Palantir |
 | GLD  | SPDR Gold Shares |
 | SMCI | Super Micro Computer |
 | USO  | United States Oil Fund |
@@ -70,3 +91,5 @@ Prices on Parquet come from external market-data feeds, adjusted by session:
 2. **Validation** — Prices are checked off-chain before they reach the chain; bad or stale data is filtered out. Large but legitimate moves — such as the Monday-morning open — are allowed through.
 3. **On-chain updates** — Validated prices are posted on-chain about once per second, more often for fast-moving names.
 4. **Oracle check** — Each on-chain price is validated for staleness and confidence before any trade can execute against it.
+
+For how Parquet defends this pipeline against oracle manipulation, stale feeds, and latency arbitrage — including during volatile earnings and major market-moving events — see [Price integrity](/reference/price-integrity).
