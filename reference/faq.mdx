@@ -18,6 +18,10 @@ Parquet is a decentralized perpetuals exchange on Solana for synthetic long/shor
 
 It stays open and pricing keeps flowing — Parquet is 24/7 since the 2026-05-20 unlock. Funding and borrowing fees accrue continuously and the keeper continues stamping funding through the weekend. You can close, add margin, or remove margin at any time; the off-hours risk parameters ($500K vs $5M OI cap per market, plus an armed ADL tail-backstop — leverage tiers are the same in every session) still apply. See [`/reference/risks`](/reference/risks) for off-hours-specific risk considerations.
 
+### How does Parquet protect against oracle manipulation, stale prices, and latency arbitrage?
+
+Parquet is oracle-priced and pool-backed, so price integrity is defended in layers. Bad or stale data is filtered **off-chain** (multiple independent feeds, outlier rejection, an agreement gate, and a trusted-source guard) **before** it reaches the chain, and every on-chain price is checked again for **staleness and confidence** before any trade can execute. The system is **fail-closed** — if a trustworthy price can't be established, the market freezes rather than trading on a suspect number. Hard open-interest caps, fees, the payout queue, and an off-hours ADL backstop bound the worst case. During earnings and big moves the same defenses apply, plus break-glass operator levers (deactivate a market, or move the venue to reduce-only). See [Price integrity](/reference/price-integrity) for the full explanation and [Risks](/reference/risks) for the residual risks.
+
 ### Is this on mainnet?
 
 Yes. Parquet trades on Solana mainnet — 15 active markets trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
@@ -52,11 +56,11 @@ Yes — you can add or remove margin on an open position at any time, 24/7. Adds
 
 ### How do LPs make money?
 
-**60% of every trading fee** flows to LP balance, paid out through the deposit/withdrawal share price. LPs also absorb realized PnL — they win when traders lose net, and lose when traders win net. (The public LP **farm** at `/farm` — where you deposit to become an LP — is **not yet live**; coming soon.) See [`/liquidity/overview`](/liquidity/overview) and [`/earn/lp-payout-queue`](/earn/lp-payout-queue) for how the LP payout queue works.
+**60% of every trading fee** flows to LP balance, paid out through the deposit/withdrawal share price. LPs also absorb realized PnL — they win when traders lose net, and lose when traders win net. The public LP **farm** at `/farm` — where you deposit to become an LP — is **live on mainnet**. See [`/liquidity/overview`](/liquidity/overview) and [`/earn/lp-payout-queue`](/earn/lp-payout-queue) for how the LP payout queue works.
 
 ### What is staking?
 
-Stake **PARQ** (an SPL Token-2022 mint) for a claimable USDC share of fee distributions — protocol-token staking is **live on mainnet**. Emission-schedule rewards and the separate LP **farm** (the LP cut of trading fees) are **not yet live**. See [`/staking/overview`](/staking/overview) for the basics and [`/developer/staking-emissions`](/developer/staking-emissions) for the emission-curve mechanics.
+Stake **PARQ** (an SPL Token-2022 mint) for a claimable USDC share of fee distributions — protocol-token staking is **live on mainnet**, as is the separate LP **farm** (the LP cut of trading fees, at `/farm`). Emission-schedule rewards are **not yet live**. See [`/staking/overview`](/staking/overview) for the basics and [`/developer/staking-emissions`](/developer/staking-emissions) for the emission-curve mechanics.
 
 ### Is there a referral program?
 
