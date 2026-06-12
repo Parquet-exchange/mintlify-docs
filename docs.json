@@ -16,7 +16,7 @@
     "metatags": {
       "og:image":       "/logo/og-image-v3.jpg",
       "og:title":       "Parquet — Docs",
-      "og:description": "Decentralized perpetuals on Solana for 32 markets — 31 US stock + ETF perps plus the SPCX pre-IPO synthetic — trading 24/7. USDC collateral, tiered leverage up to 200×, on-chain oracle price feeds.",
+      "og:description": "Decentralized perpetuals on Solana for 32 markets — 31 US stock + ETF perps plus the SPCX synthetic — trading 24/7. USDC collateral, tiered leverage up to 200×, on-chain oracle price feeds.",
       "twitter:card":   "summary_large_image"
     }
   },

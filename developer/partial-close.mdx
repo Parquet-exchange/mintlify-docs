@@ -45,7 +45,7 @@ The instruction enforces three rules. Violating any of them returns an error bef
 
 | Rule | Condition | Error on failure |
 | --- | --- | --- |
-| Size bound | `0 < closeSize ≤ position.size_usdc` | `InvalidCloseSize` |
+| Size bound | `0 < closeSize ≤ position.size_usdc` | `BelowMinSize` (code 8003) |
 | Min collateral | Remaining collateral ≥ `MIN_COLLATERAL_USDC` ($10) | `BelowMinCollateral` (code 8006) |
 | Position health | Position not already below maintenance margin | Same gate as a full close |
 

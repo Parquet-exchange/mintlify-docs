@@ -6,7 +6,7 @@ audience: developer
 
 ## Deployment
 
-Parquet runs on Solana mainnet: 32 active markets (31 equity perps plus the SPCX pre-IPO synthetic) fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH markets; the relayer-written `PriceFeed` PDA off-hours and for the relayed-24/7 markets; SPCX is priced solely from a third-party Hyperliquid feed), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
+Parquet runs on Solana mainnet: 32 active markets (31 equity perps plus the SPCX synthetic) fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH markets; the relayer-written `PriceFeed` PDA off-hours and for the relayed-24/7 markets; SPCX is priced solely from a third-party Hyperliquid feed), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
 
 The six programs are deployed under deploy wallet `PARQVsPSbsn1Pm7kdayZpicVu2pBRLYEnqijLP2QC3z`. The same program IDs are used on localnet, devnet, and mainnet (the addresses below).
 
@@ -104,7 +104,7 @@ VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 
 - **Free-RTH (11)** — AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, SPY, QQQ — read Pyth's `PriceUpdateV2` as primary during RTH and the relayer-written `PriceFeed` PDA off-hours.
 - **Relayed-24/7 (20)** — MU, SNDK, INTC, AMD, MSFT, META, PLTR, ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL — read the `PriceFeed` PDA in every session.
-- **Hyperliquid-sole-source (1)** — SPCX — a SpaceX pre-IPO synthetic with no Pyth feed; the `PriceFeed` PDA is written from a third-party Hyperliquid feed in every session. Not SpaceX stock.
+- **Hyperliquid-sole-source (1)** — SPCX — a SpaceX synthetic with no Pyth feed; the `PriceFeed` PDA is written from a third-party Hyperliquid feed in every session. Not SpaceX stock.
 
 The remaining symbols — GLD (dropped 2026-05-31), SMCI (dropped 2026-05-16), and USO (dropped 2026-05-24) — keep their `MarketState` PDAs initialized but have no live feed, so their oracles stay stale and opens revert.
 

@@ -219,7 +219,7 @@ const ix = await perp.openPositionIx(
     sizeUsdc: 2_000_000_000n,            // 2,000 USDC notional
     walletCollateral: 500_000_000n,      // 500 USDC paid from wallet
     fromQueueAmount: 0n,                 // none drawn from the payout queue
-    acceptablePrice: 45_000_000_000n,    // slippage guard, 6 decimals (0n = no check)
+    acceptablePrice: 45_000_000_000n,    // slippage guard, 1e9-scaled price ($45.00); 0n = no check
     minOutputUsdc: 0n,                   // unused at open
     positionNonce: 0n,                   // position PDA nonce
     referralCode: new Array(32).fill(0), // 32 zero bytes = no referral

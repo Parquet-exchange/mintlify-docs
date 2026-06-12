@@ -17,15 +17,16 @@ parked in the vault. It is not, however, the same as the amount you can
 withdraw. Withdrawals are gated by a derived quantity:
 
 ```
-free_liquidity = total_usdc − reserved_usdc − queue_total_owed
+free_liquidity = total_usdc − escrowed_collateral_usdc − queue_total_owed
 ```
 
-`reserved_usdc` is the collateral set aside to back open positions, the way it
-always has been. The new piece in v4 is `queue_total_owed`: the sum of every
-unpaid winning close sitting in the FIFO payout queue. When a trader closes a
-profitable position and the pool cannot pay them immediately, the obligation
-goes into the queue and that exact dollar amount becomes locked LP capital
-until it is paid out.
+`escrowed_collateral_usdc` is the trader collateral held in the vault to back
+open positions — it belongs to traders, not LPs, so it is subtracted before any
+LP can withdraw against it. The other gating piece is `queue_total_owed`: the sum
+of every unpaid winning close sitting in the FIFO payout queue. When a trader
+closes a profitable position and the pool cannot pay them immediately, the
+obligation goes into the queue and that exact dollar amount becomes locked LP
+capital until it is paid out.
 
 <Warning>
 This is the most non-obvious LP-facing fact in v4. `total_usdc` can look

@@ -78,7 +78,7 @@ curl 'https://api.parquet.exchange/events?market=AAPL&type=PositionOpened&limit=
 ```
 
 <Note>
-Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX pre-IPO synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are **not** accepted by the indexer — any request naming them returns `400` with the list of valid symbols.
+Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are **not** accepted by the indexer — any request naming them returns `400` with the list of valid symbols.
 </Note>
 
 <Note>
@@ -229,7 +229,7 @@ Trader PnL aggregation over `PositionOpened` + `PositionClosed` events (single-p
 
 PnL is **net realized PnL** (`net_return − collateral`: price move minus fees, funding, borrowing, and price impact, bounded at −collateral) for closes after 2026-06-10; older closes report gross price-move PnL (the events predate the net fields). All close paths count — user closes, keeper TP/SL/limit fills, and liquidations (a liquidation books as a losing trade at −collateral). Volume sums both legs (open + close notional).
 
-**Optional `owner` mode (2026-06-10, #188 Task 1 — ships with the indexer deploy that includes `feat/stats-user-protocol`):** pass `owner=<base58 wallet pubkey>` to fetch **one wallet’s** stats with the **same** net-PnL/volume/trades/win-rate math as the board, plus **`rank`** (1-based among traders in the window for the requested `sort`, or `null` if the wallet has no activity) and **`totalRanked`**. Invalid pubkey → `400`. When `owner` is absent, the response is the ranked list (backward compatible).
+**Optional `owner` mode:** pass `owner=<base58 wallet pubkey>` to fetch **one wallet’s** stats with the **same** net-PnL/volume/trades/win-rate math as the board, plus **`rank`** (1-based among traders in the window for the requested `sort`, or `null` if the wallet has no activity) and **`totalRanked`**. Invalid pubkey → `400`. When `owner` is absent, the response is the ranked list (backward compatible).
 
 **Query params:**
 
