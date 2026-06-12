@@ -4,11 +4,11 @@ description: What happens when a winning close can't be paid in full right away 
 audience: trader
 ---
 
-When you close a winning position on Parquet, one of two things happens: you're paid out instantly from the pool, or — when the pool's free cash is committed to other positions — your payout is held for you and paid as liquidity allows. Either way your full amount is preserved; it is never cut.
+When you close a winning position on Parquet, one of two things happens: you're paid out instantly from the pool, or — when the pool's free cash is committed to other positions — your payout is held for you and paid as liquidity allows. Either way your full amount is preserved and paid in order — with one narrow, last-resort exception described below.
 
 ## What happens if the pool is briefly short
 
-If there isn't enough free liquidity to pay your winning close in full the moment you close, the unpaid part is reserved for you and takes a spot in a first-in, first-out line. You're never haircut: you either get paid in full right away, or you get a specific place in line and the rest follows.
+If there isn't enough free liquidity to pay your winning close in full the moment you close, the unpaid part is reserved for you and takes a spot in a first-in, first-out line. In normal operation you are never haircut: you either get paid in full right away, or you get a specific place in line and the rest follows.
 
 The line refills as other traders' losing positions close and as new deposits arrive, which returns cash to the pool. As that cash builds up, reserved payouts are settled in order — the oldest claim first — around the clock.
 

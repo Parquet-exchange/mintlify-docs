@@ -100,7 +100,7 @@ VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 
 ## Markets
 
-`pool_program` holds per-symbol `MarketState` PDAs (initialized on both devnet and mainnet). **15 are active**, split by feed class under feed-v2 (2026-05-31):
+`perp_engine` holds per-symbol `MarketState` PDAs (initialized on both devnet and mainnet; `pool_program` holds the matching per-market `PoolState` and vaults). **32 are active**, split by feed class (add-16 expansion 2026-06-09; SPCX listed 2026-06-11):
 
 - **Free-RTH (11)** — AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, SPY, QQQ — read Pyth's `PriceUpdateV2` as primary during RTH and the relayer-written `PriceFeed` PDA off-hours.
 - **Relayed-24/7 (20)** — MU, SNDK, INTC, AMD, MSFT, META, PLTR, ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL — read the `PriceFeed` PDA in every session.

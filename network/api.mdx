@@ -12,73 +12,77 @@ The indexer is the public read API for on-chain perp activity and market-hours m
 
 **CORS:** restricted to Parquet's official frontends. Server-to-server callers (no `Origin` header) are unaffected. For integration allowlisting, contact the team.
 
-All timestamps in request params and response payloads are unix seconds unless explicitly stated otherwise.
+All timestamps in request params and response payloads are unix seconds unless explicitly stated otherwise. Exceptions, all called out in the per-route schemas below: ISO-8601 strings (`/market-hours.server_time`, queue-entry `*At` fields), stringified unix seconds (`/fees` and `/staking` `ts` fields), and millisecond epoch (`/points/leaderboard.updatedAt`).
+
+**Field casing:** REST responses use camelCase, except `/market-hours` and `/halt-status`, which use snake_case for compatibility with the upstream clock shape and external monitoring tooling.
 
 ## Authentication
 
 | Surface | Auth |
 |---|---|
-| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/points/*`, `/orderbook`, `/queue/*`, `/market-hours`) | None |
-| `/health` | None |
+| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/points/*`, `/orderbook`, `/queue/*`, `/market-hours`, `/halt-status`) | None |
+| `/health`, `/health/live`, `/metrics` | Optional operator Bearer token — when configured, `/health` returns `401` without it and `/metrics` serves a reduced public payload |
 | WebSocket `/ws` | None |
 
 ## GET /events
 
-Returns Anchor events decoded from on-chain logs, in chronological order. Cursor-paginated.
+Returns Anchor events decoded from on-chain logs, newest first (descending `id`). Cursor-paginated.
 
 **Query params:**
 
 | Param | Type | Notes |
 |---|---|---|
-| `cursor` | string | Opaque cursor from a previous response's `nextCursor`. Omit for the first page. |
-| `market` | string | Optional market filter. Use canonical symbol (e.g. `AAPL`) or `GLOBAL` for cross-market events. |
-| `event_type` | string | Optional event-name filter (`PositionOpened`, `PositionClosed`, `FundingUpdated`, etc.). |
-| `limit` | number | Page size, capped server-side. |
+| `market` | string | Optional filter — canonical symbol or `GLOBAL` for cross-market events. |
+| `type` | string | Optional event-name filter (`PositionOpened`, `PositionClosed`, etc.). |
+| `owner` | string | Optional base58 wallet filter (matches `payload.owner`). |
+| `limit` | number | Page size, 1–200 (default 50). |
+| `before` | number | Return events with `id <` this value — pass the previous response's `cursor.before`. |
+| `after` | number | Return events with `id >` this value. |
 
 **Response:**
 
 ```typescript
 type EventsResponse = {
   events: Array<{
-    signature: string;
-    event_index: number;
+    id: number;          // monotonic row id, the pagination cursor
+    market: string;      // canonical symbol or "GLOBAL"
+    type: string;        // event name
     slot: number;
-    block_time: number;       // unix seconds
-    market: string;           // canonical symbol or "GLOBAL"
-    event_type: string;
+    signature: string;
+    ts: number;          // unix seconds
     payload: Record<string, unknown>;
   }>;
-  nextCursor: string | null;
+  cursor: { before: number } | null;  // pass as ?before= for the next (older) page
 };
 ```
 
 ```bash
-curl 'https://api.parquet.exchange/events?market=AAPL&event_type=PositionOpened&limit=50'
+curl 'https://api.parquet.exchange/events?market=AAPL&type=PositionOpened&limit=50'
 ```
 
 ```json
 {
   "events": [
     {
-      "signature": "5Kp...",
-      "event_index": 0,
-      "slot": 312456789,
-      "block_time": 1715731200,
+      "id": 312456,
       "market": "AAPL",
-      "event_type": "PositionOpened",
-      "payload": { "trader": "...", "sizeUsdc": "1000000000", "side": 0 }
+      "type": "PositionOpened",
+      "slot": 312456789,
+      "signature": "5Kp...",
+      "ts": 1715731200,
+      "payload": { "owner": "...", "sizeUsdc": "1000000000", "side": 0 }
     }
   ],
-  "nextCursor": "eyJzbG90IjozMTI0NTY3ODl9"
+  "cursor": { "before": 312456 }
 }
 ```
 
 <Note>
-Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX pre-IPO synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are recognized by the indexer for historical reasons but have no live oracle feed — opens against them revert at the price-staleness check.
+Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX pre-IPO synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are **not** accepted by the indexer — any request naming them returns `400` with the list of valid symbols.
 </Note>
 
 <Note>
-`event_index` counts only successfully-decoded Anchor events within a transaction. Non-matching log lines do not advance it, so gaps in `event_index` are expected.
+`id` is a monotonic row identifier assigned per successfully-decoded Anchor event. It is the pagination cursor (`?before=`); gaps are expected, since log lines that don't decode to a tracked event don't advance it.
 </Note>
 
 ## GET /ohlcv
@@ -90,27 +94,29 @@ Time-windowed OHLCV candles built from indexed price rows.
 | Param | Type | Notes |
 |---|---|---|
 | `market` | string | Canonical symbol, required. |
-| `resolution` | string | Candle width — e.g. `1m`, `5m`, `1h`, `1d`. |
+| `resolution` | string | Candle width — one of `1m`, `5m`, `15m`, `1h`, `4h`, `1d`. |
 | `from` | number | Window start, unix seconds. |
 | `to` | number | Window end, unix seconds. |
-| `limit` | number | Max candles returned. |
+
+The window is clamped server-side to 500 candles (`to` is truncated to `from + 500 × resolution`).
 
 **Response:**
 
 ```typescript
 type OhlcvResponse = {
-  market: string;
-  resolution: string;
-  candles: Array<{
-    t: number;   // bucket start, unix seconds
-    o: number;   // open  — raw mantissa / 100 (USD)
-    h: number;
-    l: number;
-    c: number;
-    v: number;   // volume in USDC
+  bars: Array<{
+    time: number;    // bucket start, unix seconds
+    open: number;    // raw price mantissa (divide by 100 for USD)
+    high: number;
+    low: number;
+    close: number;
+    volume: number;  // USDC base units summed over the bucket
   }>;
+  truncatedToRetention: boolean; // true when `from` predates stored history
 };
 ```
+
+Empty buckets are forward-filled with flat, zero-volume candles so the series is continuous.
 
 ```bash
 curl 'https://api.parquet.exchange/ohlcv?market=AAPL&resolution=1m&from=1715731200&to=1715734800'
@@ -128,13 +134,14 @@ curl 'https://api.parquet.exchange/ohlcv?market=AAPL&resolution=1m&from=17157312
 
 ```typescript
 type StatsResponse = {
-  market: string;
-  volume24h: string;        // USDC
-  high24h: number;          // raw mantissa / 100
+  volume24h: string;          // USDC base units
+  high24h: number;            // raw price mantissa
   low24h: number;
-  priceChange24h: number;   // signed delta
-  priceChangePct24h: number;
-  trades24h: number;
+  priceChange24h: number;     // vs previous trading-day close (falls back to the 24h-ago price)
+  priceChangePct24h: number;  // percent, 2dp
+  tradeCount24h: number;
+  feeApr: number | null;      // reserved, currently always null
+  baselineSource: "daily_closes" | "price_24h_ago" | null; // which baseline produced the % change
 };
 ```
 
@@ -144,19 +151,24 @@ curl 'https://api.parquet.exchange/stats?market=TSLA'
 
 ## GET /fees?market=SYMBOL
 
-Fee accrual and distribution totals for the trailing 24 hours, plus the most recent distribution. 30-second per-market cache.
+Fee accrual and distribution totals for the trailing 24 hours, plus the most recent distribution. 30-second per-market cache. `?market` is optional — omit it for venue-wide totals.
 
 ```typescript
 type FeesResponse = {
-  market: string;
-  accrued24h: string;       // USDC raw
-  swept24h: string;
-  distributed24h: string;
+  totalFeesAccrued24h: string;     // USDC base units
+  totalFeesSwept24h: string;
+  totalDistributed24h: string;     // venue-wide (never market-filtered)
   lastDistribution: {
-    signature: string;
-    block_time: number;
-    amount: string;
+    total: string;
+    stakerShare: string;
+    treasuryShare: string;
+    referralShare: string;
+    ts: string;                    // unix seconds, stringified
   } | null;
+  totalInsuranceAccrued24h: string;
+  latestInsuranceTotalAccrued: string | null;
+  totalInsuranceReimbursedLiquidator24h: string;
+  latestInsuranceTotalReimbursedLiquidator: string | null;
 };
 ```
 
@@ -164,33 +176,50 @@ type FeesResponse = {
 
 Global staking snapshot. APR, staker count, recent distributions. 60-second cache.
 
+`apr` is USD-denominated (annualized staker rewards ÷ value of the staked PARQ, priced via Jupiter) and is **`null`** when it can't be computed — no PARQ price available, nothing staked, or an out-of-range result. Treat `null` as "—", not 0%. All token/USD amounts are 6-decimal integer strings.
+
 ```typescript
 type StakingResponse = {
-  aprBps: number;
-  totalStaked: string;
-  stakers: number;
+  apr: number | null;          // annualized %, USD basis; null when unpriceable / no stake
+  weeklyRewards: string;       // USDC (6-dp) distributed to stakers over the trailing 7d
+  totalStakers: number;
+  totalDistributed: string;    // USDC (6-dp), all-time staker share
+  totalStakedRaw: string;      // raw PARQ staked (6-dp) — the staked_vault balance
+  protocolPriceUsd: number | null;  // live PARQ/USD used to value the stake
   recentDistributions: Array<{
-    signature: string;
-    block_time: number;
-    amount: string;
+    total: string;             // USDC (6-dp)
+    stakerShare: string;
+    treasuryShare: string;
+    referralShare: string;
+    ts: string;                // unix seconds
   }>;
 };
 ```
 
 ## GET /staking/history?owner=PUBKEY
 
-Per-owner staking event history (stake, unstake, claim, restake). Cursor-paginated. `owner` is required.
+Per-owner staking event history (stake, unstake, claim). Cursor-paginated. `owner` is required.
+
+**Query params:**
+
+| Param | Type | Notes |
+|---|---|---|
+| `owner` | string | Base58 wallet pubkey, required. |
+| `limit` | number | Page size, 1–100 (default 20). |
+| `before` | number | Return events older than this `id` — pass the previous response's `cursor.before`. |
 
 ```typescript
 type StakingHistoryResponse = {
-  owner: string;
-  entries: Array<{
+  events: Array<{
+    id: number;
+    market: string;
+    type: "Staked" | "Unstaked" | "RewardClaimed";
+    slot: number;
     signature: string;
-    block_time: number;
-    event_type: string;
+    ts: number;          // unix seconds
     payload: Record<string, unknown>;
   }>;
-  nextCursor: string | null;
+  cursor: { before: number } | null;  // pass as ?before= for the next page
 };
 ```
 
@@ -347,11 +376,12 @@ Aggregated trigger orderbook from on-chain `OrderAccount`s for the given market.
 
 ```typescript
 type OrderbookResponse = {
-  market: string;
-  bids: Array<{ price: number; size: string }>;   // descending
-  asks: Array<{ price: number; size: string }>;   // ascending
-  spread: number | null;
-  midPrice: number | null;
+  bids: Array<{ price: string; sizeUsdc: string }>;  // descending; raw mantissa strings
+  asks: Array<{ price: string; sizeUsdc: string }>;  // ascending
+  spread: string | null;       // raw mantissa string
+  spreadPct: string | null;    // percent, 2dp
+  midPrice: string | null;
+  fetchedAt: number;           // unix seconds the on-chain snapshot was taken
 };
 ```
 
@@ -361,10 +391,10 @@ V4 LP-payout queue snapshot for one market. Derived from indexed queue events (`
 
 ```typescript
 type QueueMarketResponse = {
-  marketId: string;
-  head: number;
-  tail: number;
-  totalOwed: string;                     // USDC raw
+  market: string;
+  head: string;                          // u64 as decimal string
+  tail: string;
+  totalOwed: string;                     // USDC base units
   depth: number;                         // pending entries
   sideBucket: string | null;             // see caveat
   estimatedDrainSeconds: number | null;  // see caveat
@@ -384,19 +414,20 @@ Per-wallet view: every queue entry across markets plus a per-market claims aggre
 ```typescript
 type QueueUserResponse = {
   wallet: string;
-  entries: Array<{
-    market_id: string;
-    idx: number;
-    status: "pending" | "harvested" | "voided";
-    amount: string;
-    enqueued_at: number;
-    slot: number;
-  }>;
-  claims: Array<{
-    market_id: string;
-    unpaid_owed: string;
-    collateral_drawn: string;
-    phantom_unpaid_owed: string;
+  markets: Array<{
+    market: string;
+    unpaidOwed: string;        // USDC base units — sum of this wallet's pending entries
+    collateralDrawn: string;   // live lien from queue-claim-backed positions
+    spendableClaim: string;    // claim usable as collateral right now
+    entries: Array<{
+      idx: string;
+      amount: string;
+      status: "pending" | "harvested" | "voided";
+      enqueuedAt: string | null;   // ISO 8601
+      harvestedAt: string | null;  // ISO 8601
+      voidedAt: string | null;     // ISO 8601
+      slot: string;
+    }>;
   }>;
 };
 ```
@@ -408,9 +439,9 @@ Proxy to an upstream market-calendar provider's clock plus the next-session edge
 ```typescript
 type MarketHoursResponse = {
   is_open: boolean;
-  timestamp: string;   // ISO 8601, UTC
-  next_open: string;   // ISO 8601, UTC
-  next_close: string;  // ISO 8601, UTC
+  server_time: string; // ISO 8601 with US-Eastern offset (e.g. 2026-06-11T15:09:37-04:00)
+  next_open: string;   // ISO 8601, US-Eastern offset
+  next_close: string;  // ISO 8601, US-Eastern offset
   session: "rth" | "blend" | "off_hours";
   boundary_at: number; // unix seconds of the next session change
   now: number;         // unix seconds at request time (server clock)
@@ -423,16 +454,58 @@ curl 'https://api.parquet.exchange/market-hours'
 
 `session` is the canonical signal for the pricing regime: `rth` means Pyth's on-chain `PriceUpdateV2` is the primary read for the free-RTH markets; `blend` means the relayer is in the 10-minute weighted blend at the RTH boundary; `off_hours` means pricing comes from an **off-exchange reference feed**. **Trading is live in all three regimes** — there is no longer an RTH-halt that reverts state-changing instructions. The `boundary_at` and `now` fields are computed off the server clock at request time, so even when the upstream clock body is cached stale-on-error, the session derivation stays current. (`is_open` is preserved for backwards compatibility; it equals `session === "rth"`.)
 
+## GET /halt-status
+
+Venue-wide emergency-halt state, read on demand from the chain (3-second cache; briefly serves the last good snapshot if the chain read fails).
+
+```typescript
+type HaltStatusResponse = {
+  halt_mode: 0 | 1 | 2;                  // 0 = none, 1 = reduce-only, 2 = full
+  halt_mode_label: "none" | "reduce-only" | "full";
+  markets: Array<{ market: string; is_paused: boolean }>;
+  now: number;                           // unix seconds (server clock)
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/halt-status'
+```
+
+`reduce-only` blocks new opens and orders but allows closes, cancels, and liquidations; `full` additionally freezes closes and liquidations. If the chain read fails past the stale window the route returns `502 { error: "halt status unavailable", stale_secs }` — treat that as unknown, not as halted.
+
+## GET /overview
+
+Cumulative all-time protocol totals — the public projection behind the stats page's cumulative cards. 30-second cache.
+
+```typescript
+type OverviewResponse = {
+  cumulativeVolumeUsdc: string;   // USDC base units, all-time open + close notional
+  cumulativeFeesUsdc: string;     // USDC base units, all-time fees accrued
+  totalTrades: number;
+  uniqueTraders: number;
+  updatedAt: string;              // ISO 8601
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/overview'
+```
+
 ## GET /health
 
 Readiness signal for the indexer. Returns `200` when data is fresh and `503` when stale (or on internal failure).
 
 ```typescript
 type HealthResponse = {
-  status:        "ok" | "stale" | "error";
-  lastEventAge:  number;   // seconds
-  lastPriceAge:  number;   // seconds
-  wsClients:     number;
+  status: "ok" | "stale" | "error";
+  lastEventAge: number;        // seconds
+  lastPriceAge: number;        // seconds
+  lastDbInsertAgeSec: number | null;
+  wsClients: number;
+  queueDepth: number;
+  dbChecked: boolean;
+  pgPool: { total: number; idle: number; waiting: number };
+  backfillsComplete: boolean;  // false during the post-restart backfill window
 };
 ```
 
@@ -446,9 +519,15 @@ Realtime price and event broadcasts.
 
 **Connection:** `wss://api.parquet.exchange/ws`
 
+**Subscribing:** pass an initial market set on the URL — `wss://api.parquet.exchange/ws?markets=AAPL,TSLA` — or send `{"type":"subscribe","markets":["AAPL","TSLA"]}` after connecting. A connection with no subscriptions receives no `price` messages. There is no unsubscribe message; reconnect to change the set.
+
+**Keepalive:** the server sends `{"type":"ping"}` every 30 seconds. Reply with `{"type":"pong"}` — clients that miss two consecutive pings are disconnected (~60–90 s).
+
 The WebSocket stays connected across the RTH-to-off-hours transition; `price` messages keep arriving at the 1-second tick cadence, only the source set changes (Pyth-primary during RTH; the relayer-written off-hours reference outside RTH). A 10-minute blend window at each session boundary smooths the transition.
 
 **Message shapes:**
+
+The socket currently emits two server message types: `price` ticks and `ping` keepalives. Event broadcasts are planned but not yet emitted.
 
 ```typescript
 type PriceMessage = {
@@ -456,21 +535,11 @@ type PriceMessage = {
   market: string;
   // mantissa * 10^7 (1e9-normalized — divide by 1e9 for USD)
   price: string;
-  ts: number;
-};
-
-type EventMessage = {
-  type: "event";
-  market: string;        // canonical symbol, or "GLOBAL"
-  event_type: string;
-  signature: string;
-  payload: Record<string, unknown>;
+  timestamp: number;   // unix seconds
 };
 ```
 
 **Limits:** connection and message-rate limits apply. New connections are refused once the server-wide cap is reached, and clients that exceed the inbound message rate are closed with code `1008`.
-
-`GLOBAL` events (e.g. parameter updates, distributions) broadcast to **every** connected client regardless of any subscription state.
 
 <Warning>
 **Price format split.** The WebSocket emits `mantissa × 10^7` (1e9-normalized — e.g. `114000000000` for $114.00). The REST `/ohlcv` endpoint returns raw mantissa / 100 (e.g. `11400` for the same price). Both produce USD when scaled correctly, but the divisors are different (`1e9` vs `100`). Pick the right one per data source.
@@ -480,8 +549,8 @@ type EventMessage = {
 
 | Status | Meaning |
 |---|---|
-| `400` | Invalid params (bad `resolution`, unparseable `cursor`, etc.) |
-| `404` | Unknown market — not in `VALID_MARKETS` |
+| `400` | Invalid params — including an unknown market symbol (the `error` field lists the valid symbols) |
+| `404` | Unknown route |
 | `429` | Rate limit exceeded |
 | `500` | Server-side decode or DB error |
 | `503` | Indexer temporarily unavailable (stale data or internal failure) |

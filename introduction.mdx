@@ -5,11 +5,11 @@ description: A 24/7 decentralized perpetuals exchange on Solana for synthetic lo
 
 Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure to US stocks and ETFs, with USDC collateral and on-chain oracle price feeds. **Markets trade 24/7.** During regular US trading hours (RTH) prices track the live US equity market. During off-hours the prices come from an off-exchange reference feed. Parquet offers tiered leverage up to **200×** (smallest position tier), applied **24/7** — the same tier table in regular hours and off-hours. 200× is the maximum you can open; at that cap a fresh position sits near its liquidation point once the open fee is taken, so high leverage is high risk. Maintenance margin is 40 bps venue-wide. Off-hours keeps a tighter open-interest cap and off-exchange reference pricing.
 
-Trading is powered by per-market USDC liquidity pools, and every position is opened against its market's pool at the oracle index price. Stakers earn a share of protocol fee distributions, and liquidity providers earn a share of fees from trading, liquidations, borrowing, and funding by depositing into a market's pool on the [LP farm](/liquidity/overview).
+Trading is powered by per-market USDC liquidity pools, and every position is opened against its market's pool at the oracle index price. Stakers earn a share of protocol fee distributions, and liquidity providers earn the LP share of trading and borrowing fees — and gain when traders realize losses — by depositing into a market's pool on the [LP farm](/liquidity/overview).
 
 Prices come from external market-data feeds, are aggregated off-chain, validated for staleness and confidence, and kept continuously up to date on-chain. During US regular trading hours (RTH) prices track the live US equity market; off-hours the feed switches to an off-exchange reference, with a tighter open-interest cap (the leverage tiers are now the same in every session). Because the off-hours reference keeps updating, the on-chain feed stays current around the clock. This allows trading to stay live 24/7. Feeds are external and can still go stale; see the [risk disclosure](/reference/risks).
 
-This documentation covers the product for traders, liquidity providers, stakers, and referrers. Whether you are opening a leveraged position, providing liquidity, staking for rewards, or referring other traders, we have you covered with in-depth details in their respective document sections.
+This documentation covers the product for traders, liquidity providers, stakers, and referrers — each role below links to the page that covers it in depth.
 
 ## Get started
 

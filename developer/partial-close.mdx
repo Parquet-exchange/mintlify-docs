@@ -46,7 +46,7 @@ The instruction enforces three rules. Violating any of them returns an error bef
 | Rule | Condition | Error on failure |
 | --- | --- | --- |
 | Size bound | `0 < closeSize ≤ position.size_usdc` | `InvalidCloseSize` |
-| Min collateral | Remaining collateral ≥ `MIN_COLLATERAL_USDC` ($10) | `BelowMinCollateral` (code 2006) |
+| Min collateral | Remaining collateral ≥ `MIN_COLLATERAL_USDC` ($10) | `BelowMinCollateral` (code 8006) |
 | Position health | Position not already below maintenance margin | Same gate as a full close |
 
 The min-collateral rule is the one that trips people up: if you have a $50 position with $15 of collateral and try to close $40, the remaining $10 position would have only $3 of collateral, which is below the $10 floor. The instruction will reject the call. Either close less, or close fully.

@@ -14,6 +14,11 @@ A summary of public-relevant changes to Parquet. This list is sanitized for trad
 
 - **Market lineup expanded to 31 equity perps.** Sixteen markets were added (MSFT, META, PLTR reactivated plus ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL), all relayed 24/7. GLD, SMCI, and USO remain recognized on-chain but inactive. See [Markets](/markets).
 - **Liquidation fee moved to equity-based.** The liquidation fee is now **20% of remaining equity at liquidation**, capped at equity and split 50/50 between the liquidator and the insurance fund. It replaces the prior fixed notional fee. Because it scales with remaining equity, it cannot by itself create bad debt. See [Liquidations](/trade/liquidations).
+- **Funding activated.** Funding now accrues continuously on every market from the open-interest imbalance, capped at **10 bps/hour**, and settles when a position is closed or modified. Positions held before this date had accrued no funding. See [Fees & Costs](/trading/fees).
+
+## 2026-06-07
+
+- **Protocol-token staking live.** Stake PARQ — the protocol's fixed-supply Token-2022 mint — to earn a claimable USDC share of protocol fee distributions, weighted by lockup tier (7 days 2×, 90 days 10×, 180 days 50×). See [Staking & Rewards](/staking/overview) and [$PARQ token](/staking/tokenomics).
 
 ## 2026-06-05
 

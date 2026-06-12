@@ -9,7 +9,7 @@ All orders execute at the on-chain oracle price rather than against an order boo
 
 To avoid noise, tiny price moves are not written on-chain individually; the on-chain price refreshes whenever the market moves enough to matter.
 
-Parquet trades 24/7. RTH (Mon–Fri 09:30–16:00 ET, US holiday-aware) selects the pricing source set and risk-parameter column; outside RTH the on-chain feed continues to update from an off-exchange reference and orders still execute around the clock, but under more conservative off-hours limits — the same leverage tiers, a smaller per-market position-size cap ($500K off-hours versus $5M during RTH), and an armed ADL tail-backstop — because off-hours pricing comes from an off-exchange reference rather than the live US equity venues.
+Parquet trades 24/7. RTH (Mon–Fri 09:30–16:00 ET, US holiday-aware) selects the pricing source set and risk-parameter column; outside RTH the on-chain feed continues to update from an off-exchange reference and orders still execute around the clock, but under more conservative off-hours limits — the same leverage tiers, a smaller per-market open-interest cap ($500K off-hours versus $5M during RTH), and an armed ADL tail-backstop — because off-hours pricing comes from an off-exchange reference rather than the live US equity venues.
 
 ## Market orders
 
