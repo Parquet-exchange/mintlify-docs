@@ -473,6 +473,65 @@ curl 'https://api.parquet.exchange/halt-status'
 
 `reduce-only` blocks new opens and orders but allows closes, cancels, and liquidations; `full` additionally freezes closes and liquidations. If the chain read fails past the stale window the route returns `502 { error: "halt status unavailable", stale_secs }` — treat that as unknown, not as halted.
 
+## GET /oracle-coverage
+
+Pyth primary-feed coverage ratio per market, bucketed by hour — the signal behind the price-integrity monitoring panel. A sustained `primary_ratio < 1.0` during regular trading hours means the on-chain read fell back from the primary to the secondary reference feed.
+
+Query: `?market=<symbol>&hours=<1..168>` — both optional (default `hours=24`; omit `market` for every market).
+
+```typescript
+type OracleCoverageResponse = {
+  rows: Array<{
+    market: string;
+    hour: string;          // ISO-8601 UTC, hour-truncated bucket start
+    total: number;         // price reads in the bucket
+    primary: number;       // reads served by the primary feed
+    primary_ratio: number; // primary / total, in [0, 1]
+  }>;
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/oracle-coverage?market=AAPL&hours=24'
+```
+
+An unknown `market` returns `400 { error: "invalid market" }`.
+
+## GET /competition
+
+Trading-competition standings — a realized-PnL board with volume/qualifying-day eligibility gating. Cached; returns `503` when no competition window is configured.
+
+```typescript
+type CompetitionResponse = {
+  window: {
+    start: number;            // unix seconds
+    end: number;              // unix seconds
+    totalDays: number;
+    dayIndexNow: number;
+    phase: "before" | "active" | "ended";
+    minVolume: number;        // eligibility: minimum total volume, USDC
+    dailyThreshold: number;   // eligibility: per-day qualifying volume, USDC
+    minQualifyingDays: number;
+  };
+  traders: Array<{
+    rank: number | null;      // 1..N for eligible (ranked by realized PnL); null if ineligible
+    wallet: string;
+    realizedPnl: number;      // USDC, human units
+    cumulativeVolume: number; // both-legs volume, USDC, human units
+    qualifyingDays: number;
+    trades: number;
+    eligible: boolean;
+  }>;
+  updatedAt: string;          // ISO-8601 UTC
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/competition'
+```
+
+Returns `503 { error: "competition not configured …" }` when the `COMPETITION_START_TS` / `COMPETITION_END_TS` window is unset or misconfigured.
+
 ## GET /overview
 
 Cumulative all-time protocol totals — the public projection behind the stats page's cumulative cards. 30-second cache.
