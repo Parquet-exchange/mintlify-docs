@@ -1,24 +1,22 @@
 ---
 title: Providing liquidity
-description: How Parquet's per-market USDC liquidity pools work — depositing, withdrawing, earning fees, and understanding risks.
+description: How Parquet's shared USDC liquidity pool works — depositing, withdrawing, earning fees, and understanding risks.
 ---
 
 <Note>
-  The public LP **farm** (`/farm`) is **live on mainnet** — deposit USDC into a
-  market's pool to become a liquidity provider and earn the LP cut of trading
-  fees. A few markets are not yet open for deposits (pools with an active payout
-  queue); the rest accept deposits now.
+  The public LP **farm** (`/farm`) is **live on mainnet** — deposit USDC into the
+  pool to become a liquidity provider and earn the LP cut of trading fees.
 </Note>
 
-## How pools work
+## How the pool works
 
-Each Parquet market has its own isolated USDC liquidity pool. When you deposit USDC into a market's pool, you receive LP tokens proportional to your share of that pool's total value. The pool is the counterparty to every trade in its market: when traders profit, the pool pays out; when traders lose, the pool earns.
+Every Parquet market is backed by a single, shared USDC liquidity pool. When you deposit USDC, you receive LP tokens proportional to your share of the pool's total value. The pool is the counterparty to every trade on the venue: when traders are net profitable it pays out; when they lose, it earns.
 
-Pools are not shared across markets. A run of profitable AAPL traders affects only the AAPL pool's LP token value; the SPY pool is unaffected.
+Because one pool stands behind every market, providing liquidity gives you diversified exposure across the whole venue rather than a single ticker — a run of profitable AAPL traders is netted against trader losses elsewhere in the same pool.
 
 ## Depositing
 
-Deposit USDC into a market's pool to mint that pool's LP tokens. The number of LP tokens you receive is based on the current pool value at the time of deposit.
+Deposit USDC into the pool to mint LP tokens. The number of LP tokens you receive is based on the current pool value at the time of deposit.
 
 The first deposit into an empty pool requires a minimum of $100 USDC. This prevents manipulation of the initial LP token price. Subsequent deposits have no minimum.
 
@@ -30,7 +28,7 @@ If pool utilization is high (a large portion of USDC is reserved for open positi
 
 ## How LPs earn
 
-LPs earn through the fee accrual mechanism. On every trade in a given market, the LP share of the position fee is added directly to that market's pool USDC value. This increases the value of each LP token over time.
+LPs earn through the fee accrual mechanism. On every trade in any market the pool backs, the LP share of the position fee is added directly to the pool's USDC value. This increases the value of each LP token over time.
 
 - LP token value **increases** as fees accumulate and as traders realize losses.
 - LP token value **decreases** when traders realize profits.
@@ -53,7 +51,7 @@ Providing liquidity carries risk:
 
 - **Trader profitability:** LPs are counterparty to all traders in their market. Extended periods where traders as a group are profitable will reduce pool value and LP token price.
 - **Utilization:** High pool utilization can temporarily limit your ability to withdraw — withdrawals beyond free liquidity are queued until the keeper harvests them.
-- **Single-market exposure:** Each pool is exposed to one underlying stock or ETF. Concentrated exposure to a single ticker carries more idiosyncratic risk than a diversified pool would.
+- **Correlated drawdowns:** The shared pool is counterparty to every market it backs, so it nets away single-ticker idiosyncratic risk — but not market-wide moves. A broad rally that's profitable for net-long traders across many names at once draws the whole pool down together.
 - **Off-hours risk profile:** Parquet trades 24/7. Deposits, withdrawals, and trading remain live outside RTH; the leverage tiers are the same in every session, but off-hours tightens the per-market OI cap ($500K vs $5M) and arms an ADL tail-backstop on the payout-queue tail (a capped, last-resort socialization of the oldest unbacked queued payouts — see [Payout queue](/developer/lp-payout-queue)). LP-side mechanics — share price, harvest cadence, payout queue — work identically across sessions.
 
 For details on fees earned by LPs, see [Fees & Costs](/trading/fees).

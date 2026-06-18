@@ -232,6 +232,53 @@ const tx = new Transaction().add(ix);
 await provider.sendAndConfirm(tx);
 ```
 
+## Unified-LP-pool (category) markets
+
+Parquet markets are backed by a **shared "category" liquidity pool** (the unified-LP-pool consolidation). A market is category-backed when its `MarketState.pool_state` points at a `CategoryPool` rather than a per-market `PoolState` — always check, since the SDK still supports both shapes. Trading a category-backed market is the same flow with two differences: the perp-engine instruction reads two extra **category** accounts, and the **named** pool / vault / fee-settings accounts must be the category's. The SDK resolves both for you.
+
+**1. Detect.** Fetch the pool account `MarketState.pool_state` points at and resolve its category accounts. `resolveCategoryTradeAccounts` returns `null` for a legacy per-market pool, or a populated `CategoryTradeAccounts` for a category-backed market:
+
+```typescript
+import { resolveCategoryTradeAccounts, categoryBuilderArg } from "@parqxchange/sdk";
+
+const poolInfo = await connection.getAccountInfo(poolStatePda); // = MarketState.pool_state
+const category = resolveCategoryTradeAccounts(
+  poolInfo!.data,
+  poolStatePda,
+  marketId,
+  new PublicKey(PROGRAM_IDS_V4.POOL_PROGRAM),
+  new PublicKey(PROGRAM_IDS_V4.PERP_ENGINE),
+); // → CategoryTradeAccounts | null
+```
+
+**2. Wire it.** When `category !== null`, override the named accounts with the category ones and pass the trailing `category` argument to the `PerpClient.*Ix` builder. For legacy markets, omit `category` entirely and use the per-market accounts as usual.
+
+- Named accounts: `poolStatePda` (already the category pool), `category.categoryVault` as `vaultUsdc`, `category.categoryFeeSettings` as `feeSettings`. The per-market `engineAuth` stays the named `engineAuth` (it is not used to sign on a category market).
+- Trailing arg: `categoryBuilderArg(category)` → `{ marketRisk, engineAuth }`.
+- Category opens are **wallet-only** on-chain — `args.fromQueueAmount` must be `0n`.
+
+```typescript
+const ix = await perp.openPositionIx(
+  accounts,             // category poolState / vaultUsdc / feeSettings wired in
+  args,                 // category opens are wallet-only: fromQueueAmount MUST be 0n
+  primaryFeedAccount,
+  secondaryFeedAccount,
+  category ? categoryBuilderArg(category) : undefined, // { marketRisk, engineAuth }
+);
+```
+
+| Builder | trailing `category` shape |
+|---------|---------------------------|
+| `openPositionIx`, `closePositionIx`, `executeOrderIx`, `updatePositionMarginIx`, `liquidateIx` | `{ marketRisk, engineAuth }` — pass `categoryBuilderArg(category)` |
+| `createOrderIx` | `{ engineAuth }` only (also accepts the broader `categoryBuilderArg` shape) |
+
+<Note>
+  The high-level `openPosition` / `closePosition` action helpers do **not** thread
+  `category` yet — use the lower-level `PerpClient.*Ix` builders for category-backed
+  markets. `decodeCategoryPool` and `decodeMarketRisk` decode the underlying
+  accounts; `marketRiskPDA(marketId, poolProgramId)` derives the per-market risk PDA.
+</Note>
+
 ## OracleClient
 
 `OracleClient` exposes **two** instruction-builders, both authority-only:
