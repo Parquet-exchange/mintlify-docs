@@ -20,7 +20,7 @@ All timestamps in request params and response payloads are unix seconds unless e
 
 | Surface | Auth |
 |---|---|
-| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/points/*`, `/orderbook`, `/queue/*`, `/market-hours`, `/halt-status`) | None |
+| Public REST (`/events`, `/ohlcv`, `/stats`, `/fees`, `/staking`, `/staking/history`, `/leaderboard`, `/points/*`, `/orderbook`, `/queue/*`, `/market-hours`, `/halt-status`, `/overview`, `/farm`, `/referral-stats`) | None |
 | `/health`, `/health/live`, `/metrics` | Optional operator Bearer token — when configured, `/health` returns `401` without it and `/metrics` serves a reduced public payload |
 | WebSocket `/ws` | None |
 
@@ -489,6 +489,62 @@ type OverviewResponse = {
 
 ```bash
 curl 'https://api.parquet.exchange/overview'
+```
+
+## GET /farm
+
+Per-market LP pool stats and trailing fee APRs — the data behind the farm page. 60-second cache. Degrades gracefully: if the on-chain TVL read fails the route still returns `200` with `tvlErrored: true` and `tvl: null` on each pool (never `500`s on an RPC blip).
+
+```typescript
+type FarmResponse = {
+  asOf: string;            // ISO 8601
+  lpFeeBps: number;        // LP share of gross fees, bps (6000 = 60%)
+  minAccrualDays: number;  // fee-accrual days a pool needs before its APR is display-ready
+  minTvlUsdc: string;      // minimum-TVL gate, USDC base units
+  tvlErrored: boolean;     // true if the on-chain TVL read failed this cycle
+  pools: Array<{
+    market: string;                  // canonical symbol
+    lpFees7d: string;                // LP-share trailing-7d fees, USDC base units
+    lpFees30d: string;               // LP-share trailing-30d fees, USDC base units
+    feeAprTrailing7d: number | null; // annualized; null until display-ready
+    feeAprTrailing30d: number | null;
+    tvl: string | null;              // lp_principal TVL, USDC base units; null if the read failed
+    firstFeeTs: number | null;       // unix seconds
+    accruingDays: number | null;
+    displayReady: boolean;           // true once the accrual + TVL gates are met
+    gate: Record<string, unknown> | null; // why the APR is withheld; null once display-ready
+  }>;
+  unifiedTvlUsdc?: string;           // unified (category) pool TVL, USDC base units — present only when readable
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/farm'
+```
+
+## GET /referral-stats?code=PUBKEY
+
+An affiliate's referral activity. `code` is the affiliate's **base58 pubkey** (the connected wallet — *not* the human-readable code slug), the key under which rebates accrue on-chain. Returns `400` if `code` is missing or not a base58 pubkey. 60-second cache. On-chain reads degrade to `0` when the RPC is unavailable (the route still returns `200`).
+
+**Query params:**
+
+| Param | Type | Notes |
+|---|---|---|
+| `code` | string | **Required.** The affiliate's base58 pubkey. |
+
+**Response:**
+
+```typescript
+type ReferralStatsResponse = {
+  rebatesEarned: number;   // cumulative affiliate rebate, USDC base units (authoritative, summed on-chain)
+  tradesReferred: number;  // referee position closes
+  volumeReferred: number;  // referee notional across both legs, USDC base units
+  refereeCount: number;    // wallets that have applied this affiliate's code
+};
+```
+
+```bash
+curl 'https://api.parquet.exchange/referral-stats?code=<affiliate_pubkey>'
 ```
 
 ## GET /health
