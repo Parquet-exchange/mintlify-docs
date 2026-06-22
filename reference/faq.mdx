@@ -8,7 +8,7 @@ Quick answers to the questions traders ask most. Each answer links out to the pa
 
 ### What is Parquet?
 
-Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure to US equities and ETFs. The protocol lists 32 active markets — 31 US equity perps (29 single-name stocks plus the SPY and QQQ ETFs) and the SPCX synthetic (a SpaceX synthetic priced from a third-party Hyperliquid feed; not SpaceX stock). A few more symbols (GLD, SMCI, USO) are recognized on-chain but inactive — see [`/markets`](/markets) for the full list.
+Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure across US equities and ETFs, crypto, commodities, and forex — plus synthetics such as SPCX (a SpaceX synthetic priced from a third-party reference feed; not SpaceX stock). See [`/markets`](/markets) for the current live list (including any symbols recognized on-chain but not currently enabled).
 
 ### When can I trade?
 
@@ -24,7 +24,7 @@ Parquet is oracle-priced and pool-backed, so price integrity is defended in laye
 
 ### Is this on mainnet?
 
-Yes. Parquet trades on Solana mainnet — 32 active markets trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
+Yes. Parquet trades on Solana mainnet — markets across US equities, crypto, commodities, and forex, trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
 
 ### What wallets are supported?
 
@@ -32,7 +32,7 @@ Phantom and Solflare via the Solana wallet adapter. Anything that speaks the ada
 
 ### What's the maximum leverage?
 
-**Tiered up to 200×** for the smallest positions (≤ $5K wallet-market notional), falling to 10× for the largest (> $1M) — the **same table in every session**, set by the 50 bps initial margin. A fresh 200× position has only a 10 bps margin above maintenance (40 bps) that the 10 bps open fee fully consumes — so it opens essentially at its liquidation point, and even a small move against you can trigger liquidation. Use the highest tiers only with that in mind. See [`/getting-started/first-trade`](/getting-started/first-trade) for the trade flow and the full tier table.
+**Tiered up to 200×** for the smallest positions (≤ $100K wallet-market notional), falling to 10× for the largest (> $1M) — the **same table in every session**, set by the 50 bps initial margin. A fresh 200× position has only a 10 bps margin above maintenance (40 bps) that the 10 bps open fee fully consumes — so it opens essentially at its liquidation point, and even a small move against you can trigger liquidation. Use the highest tiers only with that in mind. See [`/getting-started/first-trade`](/getting-started/first-trade) for the trade flow and the full tier table.
 
 ### What fees do I pay?
 

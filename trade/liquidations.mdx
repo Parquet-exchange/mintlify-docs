@@ -26,7 +26,7 @@ Three numbers to remember:
 | Constant | Value |
 |---|---|
 | `MMR_BPS` | **40 bps** (0.4% of position size, venue-wide) |
-| `MAX_LEVERAGE` | **Tiered** — up to 200× (≤ $5K notional) down to 10× (> $1M), same tiers in every session (set by the 50 bps initial margin) |
+| `MAX_LEVERAGE` | **Tiered** — up to 200× (≤ $100K notional) down to 10× (> $1M), same tiers in every session (set by the 50 bps initial margin) |
 | Liquidation fee | **20% of remaining equity** at liquidation, capped at equity, split 50/50 between liquidator and insurance fund |
 
 Liquidation math rounds conservatively (in the protocol's favor) to protect liquidity providers, so the actual trigger sits a hair earlier than a back-of-envelope calculation suggests. Keep a small buffer: watch your margin in the position panel and top up collateral early. See [Margin management](/trade/margin-management) for how to add or remove collateral mid-trade.

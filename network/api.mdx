@@ -78,7 +78,7 @@ curl 'https://api.parquet.exchange/events?market=AAPL&type=PositionOpened&limit=
 ```
 
 <Note>
-Valid markets are the 32 active symbols: `AAPL`, `NVDA`, `GOOGL`, `AMZN`, `TSLA`, `COIN`, `MSTR`, `HOOD`, `CRCL`, `MU`, `SNDK`, `INTC`, `AMD`, `MSFT`, `META`, `PLTR`, `ORCL`, `LLY`, `TSM`, `CRWV`, `BABA`, `AVGO`, `NFLX`, `MRVL`, `ASML`, `COST`, `RIVN`, `IBM`, `DELL`, `SPY`, `QQQ`, `SPCX`. `SPCX` is a SpaceX synthetic priced from a third-party Hyperliquid feed, not SpaceX stock. The inactive symbols (`GLD`, `SMCI`, `USO`) are **not** accepted by the indexer — any request naming them returns `400` with the list of valid symbols.
+Valid markets are the currently-listed symbols across all categories — US equities and ETFs, crypto, commodities, and forex (see [Markets](/markets) for the live list). `SPCX` is a SpaceX synthetic priced from a third-party reference feed, not SpaceX stock. Any unrecognized or inactive symbol returns `400` with the list of valid symbols, so the indexer response is the source of truth for what's accepted.
 </Note>
 
 <Note>
@@ -538,11 +538,12 @@ Cumulative all-time protocol totals — the public projection behind the stats p
 
 ```typescript
 type OverviewResponse = {
-  cumulativeVolumeUsdc: string;   // USDC base units, all-time open + close notional
-  cumulativeFeesUsdc: string;     // USDC base units, all-time fees accrued
+  cumulativeVolumeUsdc: string;          // USDC base units, all-time open + close notional
+  cumulativeFeesUsdc: string;            // USDC base units, all-time fees accrued
+  cumulativeBorrowingFeesUsdc: string;   // USDC base units, all-time borrowing fees (LP revenue, separate line)
   totalTrades: number;
   uniqueTraders: number;
-  updatedAt: string;              // ISO 8601
+  updatedAt: string;                     // ISO 8601
 };
 ```
 
@@ -574,6 +575,11 @@ type FarmResponse = {
     gate: Record<string, unknown> | null; // why the APR is withheld; null once display-ready
   }>;
   unifiedTvlUsdc?: string;           // unified (category) pool TVL, USDC base units — present only when readable
+  unifiedApr?: PoolApr;              // equity-us CategoryPool APR over its own TVL — present only when readable
+  categoryApr?: Partial<Record<      // per-category Fee APR (one card per pool); present when readable
+    "equity-us" | "crypto-usd" | "commodities-usd" | "forex-usd",
+    { feeAprTrailing7d: number | null; feeAprTrailing30d: number | null; displayReady: boolean }
+  >>;
 };
 ```
 
