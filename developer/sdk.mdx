@@ -125,8 +125,11 @@ The published package exposes three entry paths (Node 18+; bundlers must honor `
 | `initializeInsuranceFundIx` | `admin` | `TransactionInstruction` | Authority — one-time init of the insurance fund + its USDC vault |
 | `reimbursePoolFromFundIx` | `amount` | `TransactionInstruction` | Authority — tops the pool back up from the insurance fund |
 | `withdrawInsuranceIx` | `amount`, dest | `TransactionInstruction` | Authority — withdraws from the insurance vault |
+| `depositCategoryIx` | `accounts` (category pool + vault + LP mint + user ATAs + `lpDead`), `{ amount, minLpOut }` | `TransactionInstruction` | Deposits USDC into a **shared category pool** (e.g. `equity-us`) and mints unified LP — the live LP path for category-backed markets |
+| `withdrawCategoryIx` | `accounts` (category pool + vault + LP mint + user ATAs), `{ lpAmount, minOut }` | `TransactionInstruction` | Burns unified category LP and returns USDC pro-rata |
+| `convertLpIx` | `accounts` (category pool + old/new LP mints + convert escrow), `burnAmount` | `TransactionInstruction` | Migrates a holder's **legacy per-market LP** into the unified category LP |
 
-The trailing three methods are the new v4 surface introduced by the LP payout queue redesign. Indexer keepers call them on a schedule; LP UIs surface `harvestIx` to end users so they can pull matured claims at will.
+`harvestIx` / `voidQueueClaimIx` / `drainPhantomCreditIx` are the v4 payout-queue surface — indexer keepers call them on a schedule, and LP UIs surface `harvestIx` so end users can pull matured claims at will. The `*Category*` / `convertLpIx` methods are the live LP path for the **unified category pools**: all equities share the single `equity-us` pool (crypto, commodities, and forex each have their own), so use `depositCategoryIx` / `withdrawCategoryIx` for category-backed markets — the legacy `depositIx` / `withdrawIx` target a per-market `PoolState`, now drained for consolidated markets. (Operator-only credit-treasury methods exist on the client but are intentionally undocumented here.)
 
 ```typescript
 import { Transaction } from "@solana/web3.js";
@@ -297,7 +300,7 @@ Price reads themselves happen via CPI from the perp engine and pool program at i
 | Method | Args (summary) | Returns | What it does |
 |--------|----------------|---------|--------------|
 | `distributeFeesIx` | `caller` | `TransactionInstruction` | Splits the fee pool by configured percentages |
-| `updateFeeSplitIx` | `stakerSplitBps`, `treasurySplitBps`, `referralSplitBps` | `TransactionInstruction` | Authority — sets the FeeDistributor's **3-way** split of the swept non-LP remainder (staker / treasury / referral). The LP cut is **not** set here — it's `lp_fee_bps` on each `MarketState` |
+| `updateFeeSplitIx` | `stakerSplitBps`, `treasurySplitBps`, `referralSplitBps` | `TransactionInstruction` | Authority — sets the FeeDistributor's **3-way** split of the swept non-LP remainder (staker / treasury / referral). The LP cut is **not** set here — it's `lp_fee_bps` on each category pool's `FeeSettings` |
 | `updateFeePoolAccountsIx` | account map | `TransactionInstruction` | Authority — repoints destination token accounts |
 | `withdrawTreasuryIx` | `amount`, `dest` | `TransactionInstruction` | Authority — pulls from the treasury bucket |
 | `disburseReferralIx` | `referrer` | `TransactionInstruction` | Internal — moves accrued amount into the referrer's claimable balance |

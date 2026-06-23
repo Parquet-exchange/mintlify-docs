@@ -155,7 +155,8 @@ Fee accrual and distribution totals for the trailing 24 hours, plus the most rec
 
 ```typescript
 type FeesResponse = {
-  totalFeesAccrued24h: string;     // USDC base units
+  totalFeesAccrued24h: string;     // USDC base units (includes net realized funding)
+  netFunding24h: string;           // net realized funding over 24h, folded into totalFeesAccrued24h (transparency sibling; signed)
   totalFeesSwept24h: string;
   totalDistributed24h: string;     // venue-wide (never market-filtered)
   lastDistribution: {
@@ -558,7 +559,7 @@ Per-market LP pool stats and trailing fee APRs — the data behind the farm page
 ```typescript
 type FarmResponse = {
   asOf: string;            // ISO 8601
-  lpFeeBps: number;        // LP share of gross fees, bps (6000 = 60%)
+  lpFeeBps: number;        // LP share of gross fees, bps (5000 = 50%)
   minAccrualDays: number;  // fee-accrual days a pool needs before its APR is display-ready
   minTvlUsdc: string;      // minimum-TVL gate, USDC base units
   tvlErrored: boolean;     // true if the on-chain TVL read failed this cycle

@@ -17,7 +17,7 @@ free_liquidity = total_usdc − escrowed_collateral_usdc − queue_total_owed
 If `free_liquidity` covers your payout, you're paid in full and walk away. If it falls short, the unpaid portion is recorded as a `PayoutQueueEntry` PDA, indexed FIFO by `idx`. You pay roughly $0.30 of SOL rent to open the entry. That rent isn't burned — it refunds to whoever later calls `harvest` and drains your entry. See [Glossary: payout queue](/reference/glossary#payout-queue).
 
 <Note>
-The queue is per-pool, and every market has its own isolated pool — free liquidity is a property of that market's USDC vault. A queue entry on AAPL drains only as the AAPL pool refills (losing AAPL closes and new AAPL LP deposits); flow on TSLA or MSTR does not touch it.
+The queue is per-pool, and markets share a pool by category — all equities are backed by the single `equity-us` pool, with separate pools for crypto, commodities, and forex. Free liquidity is a property of that shared pool's USDC vault, so a queue entry on AAPL drains as the equity pool refills from *any* equity's flow (losing closes and new LP deposits across the whole equity book — AAPL, TSLA, MSTR, …); flow in a different category's pool does not touch it.
 </Note>
 
 ## How the queue pays out

@@ -37,12 +37,14 @@ deploy time and can change, so this page does not hard-code a percentage — you
 current tier and its share are shown on the [Referrals](/referrals) page once
 your code is registered.
 
-Today's mainnet Standard tier (set via `configure_referral_tiers`) pays the
-referrer **~25%** of their referred traders' trading fees as claimable,
-uncapped USDC, and discounts the referred trader's fees by **10%** for life;
-deeplink codes auto-apply on the trader's first trade. These are the live
+Today's mainnet Standard (default) tier (set via `configure_referral_tiers`)
+pays the referrer **25%** of their referred traders' trading fees as claimable,
+uncapped USDC; the protocol admin can assign higher tiers (up to **40%**). The
+trader-side discount (`discount_share_pct`) is currently **0** — the full reward
+accrues to the referrer, with no fee discount applied to the referred trader.
+Deeplink codes auto-apply on the trader's first trade. These are the live
 values, not constants — re-read the on-chain tier config rather than relying on
-this number.
+these numbers.
 
 <Note>
   The number that matters to you is your tier's share of the referral reserve —

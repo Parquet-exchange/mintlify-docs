@@ -5,6 +5,12 @@ description: Public-relevant changes to the Parquet protocol and docs, newest fi
 
 A summary of public-relevant changes to Parquet. This list is sanitized for traders and integrators — it omits internal infrastructure and operational detail. For the full risk picture, always read the [risk disclosure](/reference/risks); for the current numbers, see [Fees & Costs](/trading/fees).
 
+## 2026-06-23
+
+- **LP fee share is now 50%.** With every market moved onto shared per-category liquidity pools, the fee split is **LP 50% / stakers 31.25% / treasury 12.5% / referral 6.25%** of each trading fee (the LP cut is taken first). This supersedes the earlier 60 / 25 / 10 / 5 split. See [Fees & Costs](/trading/fees).
+- **Equities share one liquidity pool.** All equity markets are now backed by a single shared liquidity pool, with separate pools for crypto, commodities, and forex. A winning close on one equity now draws on the whole equity book's liquidity rather than that one market's. See [Liquidity](/liquidity/overview) and [Payout queue](/trade/payout-queue).
+- **Referral program is affiliate-only.** On the default tier, referrers earn **25%** of their referred traders' trading fees (higher tiers up to **40%**, set by the protocol); there is no trader-side fee discount. See [Referrals](/referrals).
+
 ## 2026-06-12
 
 - **SPCX label updated post-IPO.** With SpaceX now public, the SPCX market dropped the "pre-IPO" qualifier and is labelled simply a **synthetic**. Nothing else changed: SPCX still tracks a third-party Hyperliquid feed 24/7, is still **not** SpaceX stock (no ownership or equity claim), and still has no Pyth feed. The market was briefly paused over the IPO event and then re-enabled. See [Markets](/markets) and the [risk disclosure](/reference/risks).

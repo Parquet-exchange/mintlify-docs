@@ -4,7 +4,7 @@ description: How Parquet keeps its oracle price honest — multi-source validati
 audience: trader
 ---
 
-Parquet is **oracle-priced and pool-backed** — there is no order book. Every position opens, closes, and liquidates at the oracle mark against a per-market USDC pool. That makes the integrity of the price the single most important safety property on the venue, so it is defended in layers: bad or stale data is filtered **off-chain before it is ever posted**, and then checked **again on-chain before any trade can execute against it**.
+Parquet is **oracle-priced and pool-backed** — there is no order book. Every position opens, closes, and liquidates at the oracle mark against a shared USDC pool. That makes the integrity of the price the single most important safety property on the venue, so it is defended in layers: bad or stale data is filtered **off-chain before it is ever posted**, and then checked **again on-chain before any trade can execute against it**.
 
 This page explains how Parquet resists the three things that threaten an oracle-priced perp — **manipulation, stale feeds, and latency arbitrage** — and, just as importantly, what it deliberately does *not* do. For the high-level price pipeline, see [How pricing works](/markets#how-pricing-works); for the risks that remain, see [Risks](/reference/risks).
 

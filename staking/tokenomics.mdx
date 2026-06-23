@@ -51,10 +51,10 @@ Parquet charges a fee on notional at every fill — **0.1%** base, or **0.05%** 
 
 | Recipient | Share of every fee |
 |-----------|--------------------|
-| Per-market liquidity pool | **60%** |
-| $PARQ stakers | **25%** |
-| Treasury | **10%** |
-| Referral reserve | **5%** |
+| Liquidity pool (LP share) | **50%** |
+| $PARQ stakers | **31.25%** |
+| Treasury | **12.5%** |
+| Referral reserve | **6.25%** |
 
 The staker share pays in **USDC**, pro-rata across staked balance and weighted by your lockup tier. Because it is taken per trade, the distribution tracks volume rather than an emission schedule — it is protocol revenue, not token inflation. (Fee numbers are canonical at [Fees & Costs](/trading/fees); the on-chain split encoding is documented at [Contracts](/network/contracts#fee-distribution-split).)
 
@@ -72,18 +72,18 @@ Funding incentives from a fixed **2% / 6%** allocation instead of open-ended emi
 
 ## Why the bootstrap buckets exist
 
-Parquet has no order book. Trades execute against a per-market USDC pool at the oracle price, so the pool is the counterparty, and pool depth — not spread — determines how much open interest the venue can carry. A pool's steady-state yield is its 60% fee cut, which only matters once volume exists. That creates a fixed point at launch: LPs will not deposit without fee flow, and fee flow needs the depth that deposits provide.
+Parquet has no order book. Trades execute against a shared USDC pool at the oracle price, so the pool is the counterparty, and pool depth — not spread — determines how much open interest the venue can carry. A pool's steady-state yield is its 50% fee cut, which only matters once volume exists. That creates a fixed point at launch: LPs will not deposit without fee flow, and fee flow needs the depth that deposits provide.
 
 The bootstrap buckets pay past that fixed point:
 
 - **Staking & LP rewards (6%)** seed pool depth.
 - **Growth & incentives (2%)** source the first volume, through referral and trading rewards.
 
-Once the 60% fee cut sustains the pool unassisted, these buckets are spent down and growth runs on fee revenue alone.
+Once the 50% fee cut sustains the pool unassisted, these buckets are spent down and growth runs on fee revenue alone.
 
 ## Why pump.fun
 
-$PARQ launched on [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) because the distribution above is only credible if the launch mechanism enforces it. A bonding curve sells to everyone on the same programmatic pricing — no presale, no discounted insider tranche, no allocation the public cannot reach. It also keeps the two layers clean: $PARQ is the token, while the protocol's liquidity and fees run through per-market USDC pools. Staking $PARQ is the sole claim on those fees, and the bonding curve is what distributed that claim fairly.
+$PARQ launched on [pump.fun](https://pump.fun/coin/VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq) because the distribution above is only credible if the launch mechanism enforces it. A bonding curve sells to everyone on the same programmatic pricing — no presale, no discounted insider tranche, no allocation the public cannot reach. It also keeps the two layers clean: $PARQ is the token, while the protocol's liquidity and fees run through the shared USDC pools. Staking $PARQ is the sole claim on those fees, and the bonding curve is what distributed that claim fairly.
 
 ## Why paired against USDC
 

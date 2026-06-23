@@ -100,19 +100,22 @@ VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 
 ## Markets
 
-`perp_engine` holds per-symbol `MarketState` PDAs (initialized on both devnet and mainnet; `pool_program` holds the matching per-market `PoolState` and vaults). **32 are active**, split by feed class (add-16 expansion 2026-06-09; SPCX listed 2026-06-11):
+`perp_engine` holds a per-symbol `MarketState` PDA for every listed market (initialized on both devnet and mainnet). Markets are backed by shared per-category liquidity pools in `pool_program` — equities by a single `equity-us` pool, with separate pools for crypto, commodities, and forex. The venue spans US-equity, crypto, commodities, and forex perpetuals; see [Markets](/markets) for the current, canonical list.
 
-- **Free-RTH (11)** — AAPL, NVDA, GOOGL, AMZN, TSLA, COIN, MSTR, HOOD, CRCL, SPY, QQQ — read Pyth's `PriceUpdateV2` as primary during RTH and the relayer-written `PriceFeed` PDA off-hours.
-- **Relayed-24/7 (20)** — MU, SNDK, INTC, AMD, MSFT, META, PLTR, ORCL, LLY, TSM, CRWV, BABA, AVGO, NFLX, MRVL, ASML, COST, RIVN, IBM, DELL — read the `PriceFeed` PDA in every session.
-- **Hyperliquid-sole-source (1)** — SPCX — a SpaceX synthetic with no Pyth feed; the `PriceFeed` PDA is written from a third-party Hyperliquid feed in every session. Not SpaceX stock.
+Markets fall into a few feed classes:
 
-The remaining symbols — GLD (dropped 2026-05-31), SMCI (dropped 2026-05-16), and USO (dropped 2026-05-24) — keep their `MarketState` PDAs initialized but have no live feed, so their oracles stay stale and opens revert.
+- **RTH-primary equities** — read an on-chain `PriceUpdateV2` as primary during regular trading hours, falling back to the relayer-written `PriceFeed` PDA off-hours.
+- **Relayed equities** — read the `PriceFeed` PDA (relayer-written from an off-exchange reference feed) as primary in every session.
+- **Synthetic / off-exchange-sourced markets** (e.g. SPCX) — priced from an off-exchange reference feed with no on-chain primary oracle.
+- **Crypto, commodities & forex** — 24/7 markets on their own category pools.
+
+A market with a stale or absent feed keeps its `MarketState` PDA initialized but reverts opens until a live feed is restored.
 
 All markets share a single wallet-notional-tiered leverage table applied in **every session** — **up to 200× on the smallest tier (≤$100K)**, scaling down by wallet-notional tier (≤$200K / ≤$250K / ≤$1M / >$1M, to 10× for >$1M). The 200× openable max follows from the **50 bps initial margin** (a fresh max-tier open has ~0 economic cushion after the open fee). Maintenance margin is **40 bps** venue-wide, liquidation fee = 20% of remaining equity at liquidation, funding cap = 10 bps/hour. OI cap = $5M per market during RTH and $500K off-hours (the one risk parameter that still tightens off-hours, alongside off-exchange reference pricing); five recently-added markets — ASML, COST, RIVN, IBM, DELL — carry a tighter $100K off-hours cap. An **ADL tail-backstop** (Tier-B queue-IOU socialization) is armed off-hours on all markets as a last-resort bound on the payout-queue tail — see [Payout queue](/trade/payout-queue) and [Risks](/reference/risks). Bad-data rejection happens in the off-chain aggregator. See [Markets](/markets) for the symbol list.
 
 ## Fee distribution split
 
-Effective on mainnet (2026-06-03): **LP 60% / stakers 25% / treasury 10% / referral 5%** of total trading fees. The LP cut is taken first; the remainder is split among stakers, the treasury, and the referral pool in those proportions.
+Effective on mainnet: **LP 50% / stakers 31.25% / treasury 12.5% / referral 6.25%** of total trading fees. The LP cut is taken first (`lp_fee_bps = 5000` on each category pool's fee settings); the remainder is split among stakers, the treasury, and the referral pool in those proportions.
 
 ## See also
 
