@@ -37,7 +37,7 @@
       { "group": "Get started", "pages": ["introduction", "getting-started/wallet-setup", "getting-started/first-trade"] },
       { "group": "Trade",       "pages": ["trading/overview", "trading/order-types", "trading/fees", "trade/liquidations", "trade/margin-management", "trade/payout-queue"] },
       { "group": "Earn",        "pages": ["liquidity/overview", "staking/overview", "staking/tokenomics", "referrals", "earn/lp-payout-queue", "earn/staking-emissions", "earn/referrals-lifecycle"] },
-      { "group": "Reference",   "pages": ["markets", "reference/glossary", "reference/faq", "reference/price-integrity", "reference/risks", "reference/security", "network/contracts", "changelog"] },
+      { "group": "Reference",   "pages": ["markets", "reference/glossary", "reference/faq", "reference/price-integrity", "reference/risks", "reference/security", "network/contracts"] },
       { "group": "Developer",   "pages": ["developer/access"] }
     ]
   }
