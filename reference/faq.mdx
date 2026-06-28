@@ -8,11 +8,11 @@ Quick answers to the questions traders ask most. Each answer links out to the pa
 
 ### What is Parquet?
 
-Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure across US equities and ETFs, crypto, commodities, and forex — plus synthetics such as SPCX (a SpaceX synthetic priced from a third-party reference feed; not SpaceX stock). See [`/markets`](/markets) for the current live list (including any symbols recognized on-chain but not currently enabled).
+Parquet is a decentralized perpetuals exchange on Solana for synthetic long/short exposure across US equities and ETFs, crypto, commodities, forex, and trading cards — plus synthetics such as SPCX (a SpaceX synthetic priced from a third-party reference feed; not SpaceX stock). Trading-card markets are a higher-risk, speculative category (capped at 50× and excluded from the LP farm). See [`/markets`](/markets) for the current live list (including any symbols recognized on-chain but not currently enabled).
 
 ### When can I trade?
 
-**24/7.** During regular trading hours (Mon–Fri 09:30–16:00 ET) prices track the live US equity market. Off-hours, pricing comes from an off-exchange reference feed. A 10-minute weighted blend smooths each session boundary. US holidays and early-close days are detected automatically and degrade the RTH regime to off-hours. The app shows the current session — regular trading hours, the transition blend, or off-hours. See [`/trading/overview`](/trading/overview); developers can read the session programmatically via the [public API](/network/api#get-market-hours).
+**24/7.** During regular trading hours (Mon–Fri 09:30–16:00 ET) prices track the live US equity market. Off-hours, pricing comes from an off-exchange reference feed. A 10-minute weighted blend smooths each session boundary. US holidays and early-close days are detected automatically and degrade the RTH regime to off-hours. The app shows the current session — regular trading hours, the transition blend, or off-hours. See [`/trading/overview`](/trading/overview); the public indexer also exposes the session programmatically (developer docs by request — see [Developer docs](/developer/access)).
 
 ### What happens to my position over the weekend?
 
@@ -24,7 +24,7 @@ Parquet is oracle-priced and pool-backed, so price integrity is defended in laye
 
 ### Is this on mainnet?
 
-Yes. Parquet trades on Solana mainnet — markets across US equities, crypto, commodities, and forex, trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
+Yes. Parquet trades on Solana mainnet — markets across US equities, crypto, commodities, forex, and trading cards, trading 24/7, keeper online. Devnet also remains live for SDK/developer testing. See [`/network/contracts`](/network/contracts) for program IDs.
 
 ### What wallets are supported?
 
@@ -60,7 +60,7 @@ Yes — you can add or remove margin on an open position at any time, 24/7. Adds
 
 ### What is staking?
 
-Stake **PARQ** (an SPL Token-2022 mint) for a claimable USDC share of fee distributions — protocol-token staking is **live on mainnet**, as is the separate LP **farm** (the LP cut of trading fees, at `/farm`). Emission-schedule rewards are **not yet live**. See [`/staking/overview`](/staking/overview) for the basics and [`/developer/staking-emissions`](/developer/staking-emissions) for the emission-curve mechanics.
+Stake **PARQ** (an SPL Token-2022 mint) for a claimable USDC share of fee distributions — protocol-token staking is **live on mainnet**, as is the separate LP **farm** (the LP cut of trading fees, at `/farm`). Emission-schedule rewards are **not yet live**. See [`/staking/overview`](/staking/overview) for the basics and [`/earn/staking-emissions`](/earn/staking-emissions) for the emission-curve mechanics.
 
 ### Is there a referral program?
 

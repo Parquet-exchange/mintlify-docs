@@ -6,7 +6,7 @@ audience: developer
 
 ## Deployment
 
-Parquet runs on Solana mainnet: perpetual markets across US equities, crypto, commodities, and forex (see [Markets](/markets) for the live list), fed by an off-chain price-relay service under the pyth-hybrid oracle (Pyth `PriceUpdateV2` primary during RTH for the free-RTH equity markets; the relayer-written `PriceFeed` PDA off-hours and for relayed markets; synthetics such as SPCX priced solely from a third-party reference feed), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
+Parquet runs on Solana mainnet: perpetual markets across US equities, crypto, commodities, forex, and trading cards (see [Markets](/markets) for the live list), fed by an off-chain price-relay service under the dual-feed oracle (an on-chain `PriceUpdateV2` price account primary during RTH for the free-RTH equity markets; the relayer-written `PriceFeed` PDA off-hours and for relayed markets; synthetics such as SPCX priced solely from a third-party reference feed), the keeper stamping funding for every market, and the public indexer ingesting on-chain activity over webhooks. Devnet remains live for SDK testing.
 
 The six programs are deployed under deploy wallet `PARQVsPSbsn1Pm7kdayZpicVu2pBRLYEnqijLP2QC3z`. The same program IDs are used on localnet, devnet, and mainnet (the addresses below).
 
@@ -38,7 +38,7 @@ Position lifecycle (open/close/liquidate), order management (limit/stop), margin
 
 ### oracle_adapter
 
-Lightweight CPI surface for read-only price reads. Other programs CPI here rather than parsing `PriceFeed` bytes directly. Under the pyth-hybrid oracle, the adapter reads Pyth's `PriceUpdateV2` as primary during RTH and falls back to the relayer-written `PriceFeed` PDA (carrying the off-hours reference) when the primary feed ages out — so reads succeed 24/7.
+Lightweight CPI surface for read-only price reads. Other programs CPI here rather than parsing `PriceFeed` bytes directly. Under the dual-feed oracle, the adapter reads the on-chain `PriceUpdateV2` price account as primary during RTH and falls back to the relayer-written `PriceFeed` PDA (carrying the off-hours reference) when the primary feed ages out — so reads succeed 24/7.
 
 ```
 6fsnWa9tcKcPiuQgdUbTMsiwUr43MNoxa1FECPFrvSpd
@@ -100,7 +100,7 @@ VtwGKv7dcpY7aFb8H7MvZfEtUAKwtsHcXSkejCAparq
 
 ## Markets
 
-`perp_engine` holds a per-symbol `MarketState` PDA for every listed market (initialized on both devnet and mainnet). Markets are backed by shared per-category liquidity pools in `pool_program` — equities by a single `equity-us` pool, with separate pools for crypto, commodities, and forex. The venue spans US-equity, crypto, commodities, and forex perpetuals; see [Markets](/markets) for the current, canonical list.
+`perp_engine` holds a per-symbol `MarketState` PDA for every listed market (initialized on both devnet and mainnet). Markets are backed by shared per-category liquidity pools in `pool_program` — equities by a single `equity-us` pool, with separate pools for crypto, commodities, forex, and trading cards (the trading-card pool is operator-seeded and excluded from the public LP farm). The venue spans US-equity, crypto, commodities, forex, and trading-card perpetuals; see [Markets](/markets) for the current, canonical list.
 
 Markets fall into a few feed classes:
 
@@ -108,6 +108,7 @@ Markets fall into a few feed classes:
 - **Relayed equities** — read the `PriceFeed` PDA (relayer-written from an off-exchange reference feed) as primary in every session.
 - **Synthetic / off-exchange-sourced markets** (e.g. SPCX) — priced from an off-exchange reference feed with no on-chain primary oracle.
 - **Crypto, commodities & forex** — 24/7 markets on their own category pools.
+- **Trading cards** — 24/7 collectible-card markets on a dedicated `tcg-usd` category pool, priced from a card-market reference feed; tighter risk parameters (50× max) and excluded from the public LP farm.
 
 A market with a stale or absent feed keeps its `MarketState` PDA initialized but reverts opens until a live feed is restored.
 
@@ -119,6 +120,5 @@ Effective on mainnet: **LP 50% / stakers 31.25% / treasury 12.5% / referral 6.25
 
 ## See also
 
-- [Network → API](/network/api) — public indexer endpoints and rate limits.
-- [Developer → SDK](/developer/sdk) — TypeScript client that wraps these program IDs.
+- [Developer docs](/developer/access) — SDK and indexer API references, available to builders on request.
 - [Markets](/markets) — symbol list and per-market parameters.

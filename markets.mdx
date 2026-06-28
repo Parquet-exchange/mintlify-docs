@@ -1,11 +1,11 @@
 ---
 title: Markets
-description: The live Parquet markets — US equity, crypto, commodities, and forex perpetuals, trading 24/7.
+description: The live Parquet markets — US equity, crypto, commodities, forex, and trading-card perpetuals, trading 24/7.
 ---
 
-Parquet trades live on Solana mainnet across US equities and ETFs, crypto, commodities, and forex. The in-app market list is the canonical, always-current set of tradeable markets.
+Parquet trades live on Solana mainnet across US equities and ETFs, crypto, commodities, forex, and trading cards. The in-app market list is the canonical, always-current set of tradeable markets.
 
-Parquet lists perpetuals across US equities and ETFs, crypto, commodities, and forex, plus synthetics such as SPCX. Each market gives synthetic long or short exposure to a real-world price, settled in USDC against a shared per-category liquidity pool. **Markets trade 24/7.** For US-equity markets, during regular US trading hours (9:30 AM–4:00 PM ET, Mon–Fri) prices track the live US equity market; outside those hours, prices come from an off-exchange reference feed. See [Trading hours](#trading-hours) and [Risks](/reference/risks).
+Parquet lists perpetuals across US equities and ETFs, crypto, commodities, forex, and trading cards, plus synthetics such as SPCX. Each market gives synthetic long or short exposure to a real-world price, settled in USDC against a shared per-category liquidity pool. **Markets trade 24/7.** For US-equity markets, during regular US trading hours (9:30 AM–4:00 PM ET, Mon–Fri) prices track the live US equity market; outside those hours, prices come from an off-exchange reference feed. See [Trading hours](#trading-hours) and [Risks](/reference/risks).
 
 ## Single-name equities
 
@@ -66,13 +66,21 @@ Metals and energy perpetuals (for example silver, copper, gold, WTI crude, and n
 
 Major FX-pair perpetuals (for example EUR/USD, GBP/USD, and USD/JPY), priced 24/7 from an off-exchange reference feed. Backed by the forex liquidity pool. See the in-app market list for the full set.
 
+## Trading cards
+
+Trading-card perpetuals give synthetic long or short exposure to the prices of collectible trading cards — graded, raw, and sealed product — priced 24/7 from a card-market reference feed and settled in USDC against a dedicated trading-card liquidity pool. The app groups them into **raw**, **sealed**, and **graded/slab** sectors. See the in-app market list for the full, current set.
+
+<Warning>
+Trading cards are a **higher-risk, speculative** product and carry tighter risk parameters than the other categories. Max leverage is **50×** (set by a 200 bps initial margin, with 100 bps maintenance margin), open-interest caps are **smaller and depth-scaled** per card, payouts are **queue-backed**, and trading-card markets are **excluded from the LP farm** — there is no LP yield or farm pool for them. The underlying card-market reference feed is thinner and less continuous than an equity or crypto feed, so marks can move sharply. Treat these as a degen product and read the [risk disclosure](/reference/risks) before trading.
+</Warning>
+
 ## Synthetic
 
 | Symbol | Name | Pricing |
 |--------|------|---------|
-| SPCX | SpaceX synthetic | Third-party Hyperliquid feed (`xyz:SPCX`), 24/7 |
+| SPCX | SpaceX synthetic | Third-party reference feed (`xyz:SPCX`), 24/7 |
 
-SPCX tracks a third-party Hyperliquid synthetic for SpaceX, priced 24/7. **It is not SpaceX stock**, confers no ownership or equity claim, and has no Pyth feed — like several other markets, it is priced solely from a third-party Hyperliquid feed. Treat SPCX as a speculative synthetic and read the [risk disclosure](/reference/risks) before trading.
+SPCX tracks a third-party off-exchange synthetic for SpaceX, priced 24/7. **It is not SpaceX stock**, confers no ownership or equity claim, and has no independent on-chain oracle feed — like several other markets, it is priced solely from a third-party reference feed. Treat SPCX as a speculative synthetic and read the [risk disclosure](/reference/risks) before trading.
 
 ## Inactive markets
 
