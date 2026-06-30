@@ -11,7 +11,7 @@ This page is the **canonical source of truth** for Parquet's fee and risk parame
 |-----------|-------|
 | Open / close fee — base | **0.1%** of notional |
 | Open / close fee — favorable (reduces OI imbalance) | **0.05%** of notional |
-| Funding rate cap | **10 bps/hour** |
+| Funding rate cap | **300% APR** (≈0.82% / day) — bounded; protocol ceiling 10 bps/hour |
 | Liquidation fee | **20% of remaining equity** at liquidation (capped at equity, split 50/50 liquidator / insurance fund) |
 | Initial margin | **50 bps** (0.5%) of notional → **200×** max openable, venue-wide |
 | Maintenance margin ratio (MMR) | **40 bps** (0.4%) venue-wide |
@@ -41,12 +41,12 @@ The same logic applies in reverse for short positions. When favorable fees are n
 
 The funding rate is a periodic payment between long and short position holders, based on the open interest imbalance.
 
-- The side with **larger aggregate open interest** pays the other side.
+- The side with **larger aggregate open interest** pays the other side — and the lighter side **receives** funding.
 - Funding accrues continuously and is settled when you close or modify your position.
 - The funding rate is updated automatically at regular intervals.
-- The funding rate is capped at **10 bps/hour** on Parquet.
+- The funding rate is **capped at 300% APR** (≈0.82% per day) — the binding limit enforced on-chain (the protocol's absolute ceiling is 10 bps/hour, which funding never reaches in practice).
 
-Funding incentivizes balanced open interest: when one side dominates, its holders pay a premium to the other side.
+Funding incentivizes balanced open interest: when one side dominates, its holders pay a premium to the other side. Because the rate is **capped**, the cost of holding even a heavily one-sided position is **bounded** — funding can never spiral, no matter how crowded a market gets.
 
 ## Borrowing fees
 

@@ -52,7 +52,7 @@ See: [LP payout queue](/earn/lp-payout-queue)
 
 ### Funding rate
 
-A periodic payment that flows between longs and shorts depending on which side is more crowded. If longs outweigh shorts, longs pay shorts (and vice versa). It accrues continuously on every open position and is settled into your collateral the next time your position is touched. Funding is capped at 10 bps per hour.
+A periodic payment that flows between longs and shorts depending on which side is more crowded. If longs outweigh shorts, longs pay shorts (and vice versa) — the lighter side receives funding. It accrues continuously on every open position and is settled into your collateral the next time your position is touched. Funding is **capped at 300% APR** (≈0.82% per day), so the cost of holding a crowded position is always bounded.
 
 See: [Liquidations](/trade/liquidations)
 
